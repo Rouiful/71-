@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOEIC學習平台 - 測驗平台-閱讀測驗</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 80%;
+            max-width: 800px;
+        }
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            min-height: 200px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #7f8c8d;
+            text-align: center;
+            flex-direction: column;
+        }
+
+        .word-title {
+            font-size: 25px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        h2 {
+            color: #2c3e50;
+        }
+        h1{
+            text-align: center;
+            color: #58585b;
+        }
+
+        p{
+            font-weight: bold;
+        }
+        
+        #backButton {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            background-color: #86c0e6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            text-decoration: none; /* 移除底線 */
+            display: inline-block; /* 確保樣式正常應用 */
+        }
+
+
+        #backButton:hover {
+            background-color: #0056b3;
+        }
+
+        /* 主要內容區域 */
+        .main-content {
+            flex: 1;
+            padding: 10px;
+            padding-right: 0px;
+            padding-left: 0px;
+            transition: margin-left 0.3s; /* 當側邊欄開啟時，主要內容區域會平移 */
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            background: linear-gradient(#86c0e6 30%,#bdd9ec 70%);
+            color: #58585b;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1;
+        }
+
+        /* 菜單按鈕樣式 */
+        .menu-btn {
+            font-size: 24px;
+            background-color: transparent;
+            color: #58585b;
+            border: none;
+            cursor: pointer;
+            padding: 10px 15px;
+            margin-right: 20px; 
+            border-radius: 5px;
+        }
+
+        .menu-btn1 {
+            font-size: 24px;
+            background-color: transparent;
+            color: #58585b;
+            border: none;
+            cursor: pointer;
+            padding-top: 17px ;
+            padding-left: 30px;
+            padding-bottom: 20px;
+            margin-right: 20px; 
+            border-radius: 5px;
+        }
+
+        /* 當前頁面按鈕樣式 */
+        .current {
+            background-color: #58585b !important;
+            color: #fff !important;
+            pointer-events: none;
+            cursor: default;
+        }
+
+        /* 標題樣式 */
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        /* 導覽列按鈕容器 */
+        .nav-buttons {
+            margin-right: auto;
+            display: flex;
+            gap: 10px; /* 按鈕之間的間距 */
+        }
+
+        /* 導覽列按鈕樣式 */
+        .nav-btn {
+            background-color: #dae9f6;
+            color:	#58585b;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .nav-btn:hover {
+            background-color: 	#73a5d3;
+            color: #fff;
+        }
+
+        /* 響應式設計，適應不同螢幕大小 */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column; /* 垂直堆疊 */
+                align-items: stretch;
+            }
+            .nav-buttons {
+                justify-content: center;
+            }
+        }
+
+        
+        .content {
+            margin: 20px;
+            margin-left: 0px;
+            margin-right: 0px;
+            padding: 20px;
+            padding-right: 0px;
+            padding-left: 0px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center; /* 讓區塊在水平方向置中 */
+            gap: 20px; /* 區塊之間的間距 */
+            width: 80%;
+            margin: 100px auto; /* 垂直置中 */
+        }
+
+        
+        .test-box {
+            width: 30%;
+            padding: 40px;
+            text-align: center;
+            background: #86c0e6;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, background 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .test-box:hover {
+            background: #73a5d3;
+            transform: scale(1.05);
+        }
+        
+        h2 {
+            margin: 0 0 10px;
+        }
+        
+        .locked {
+        background: #ccc; /* 灰色背景，表示鎖定 */
+        cursor: not-allowed;
+        position: relative;
+        }
+
+        .locked h2,
+        .locked p {
+            opacity: 0.5; /* 讓文字變淡，顯示鎖定狀態 */
+        }
+
+        /* 付費解鎖按鈕 */
+        .unlock-btn {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .unlock-btn:hover {
+            background-color: darkred;
+        }
+
+        /* 免費測驗按鈕 */
+        .free-test {
+            background-color: #4CAF50; /* 綠色 */
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            border: none;
+        }
+
+        .free-test:hover {
+            background-color: #388E3C; /* 深綠色 */
+        }
+
+        .test-box {
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+            background: #86c0e6;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, background 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .test-box:hover {
+            background: #73a5d3;
+            transform: scale(1.05);
+        }
+
+        .quiz-options {
+            list-style: none;
+            padding: 0;
+        }
+
+        .quiz-options li {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .quiz-options li:hover {
+            background: #d0e2f2;
+        }
+
+        /* Footer容器樣式 */
+        .footer {
+            background: linear-gradient(#bdd9ec 30%, #86c0e6 70%);
+            color: #6c4409;
+            padding: 40px 20px;
+            text-align: center;
+            position: relative; /* 確保 z-index 生效 */
+            z-index: -1; /* 設置最低層級 */
+        }
+
+        .footer-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        /* 單個區塊的樣式 */
+        .footer .about-us,
+        .footer .contact-us,
+        .footer .social-media {
+            width: 20%;
+            padding: 10px;
+        }
+
+        .footer h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #6c4409;
+        }
+
+        .footer p,
+        .footer ul {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* 聯絡方式樣式 */
+        .footer .contact-us ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer .contact-us li {
+            margin-bottom: 10px;
+        }
+
+        /* 版權聲明樣式 */
+        .footer-bottom{
+            padding: 10px;
+        }
+
+        .footer-bottom p {
+            font-size: 12px;
+            color: #6c4409;
+        }
+
+        /* 當前頁面按鈕樣式改變 */
+        a.current .nav-btn {
+            background-color: #6c4409;
+            color: #fff;
+            pointer-events: none; /* 禁用點擊 */
+            cursor: default;
+            position: relative;
+        }
+
+    </style>
+    <!-- 引入icon -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="header">
+        <button class="menu-btn" id="menu-btn">☰</button>
+        <h1>TOEIC學習平台</h1>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="word-title">單字測驗</span>
+    </div>
+
+    <h1>Vocabulary Test</h1>
+
+    <div class="container">
+        <!-- 單字測驗題組 -->
+        <div class="box" id="vocabulary-question">
+            <h2>Choose the Correct Meaning</h2>
+            <!-- 顯示當前問題 -->
+            <p id="word">Loading word...</p>
+    
+            <!-- 顯示選項 -->
+            <ul class="quiz-options" id="options">
+                <li onclick="checkAnswer(1)">Option 1</li>
+                <li onclick="checkAnswer(2)">Option 2</li>
+                <li onclick="checkAnswer(3)">Option 3</li>
+                <li onclick="checkAnswer(4)">Option 4</li>
+            </ul>
+    
+            <!-- 顯示題組結果 -->
+            <div id="feedback" style="display: none;">
+                <p id="result-message"></p>
+                <button onclick="nextQuestion()">Next Question</button>
+            </div>
+        </div>
+    </div>
+
+    <a href="test.html" id="backButton">回到上一頁</a>    
+
+    <script>
+        
+        function goBack() {
+            window.history.back();
+        }
+
+        // 你可以使用 JavaScript 來填充 AI 產生的內容
+        function insertContent() {
+            document.getElementById("reading-passage").innerHTML = `
+                <h2>Reading Passage</h2>
+                <p>The AI-generated text will be inserted here...</p>
+            `;
+
+            document.getElementById("questions").innerHTML = `
+                <h2>Questions</h2>
+                <ol>
+                    <li>What is the main idea of the passage?</li>
+                    <li>Which of the following is mentioned as a key factor?</li>
+                    <li>What can be inferred from the text?</li>
+                </ol>
+            `;
+        }
+        // 獲取當前頁面的網址
+        const currentPage = window.location.pathname.split("/").pop();
+    
+        // 選取所有導航按鈕
+        const navLinks = document.querySelectorAll(".nav-buttons a");
+    
+        navLinks.forEach(link => {
+            // 取得按鈕的 href
+            const page = link.getAttribute("href");
+            if (page === currentPage) {
+                link.querySelector(".nav-btn").classList.add("current");
+            }
+        });
+
+        function loadVocabularyTest() {
+            const wordElement = document.getElementById("word");
+            const optionsElement = document.getElementById("options");
+
+            const wordData = {
+                word: "Resilient",
+                options: [
+                    "Able to recover quickly",
+                    "Very weak",
+                    "Extremely fast",
+                    "Completely different"
+                ],
+                correct: 0 // 第一個選項是正確答案
+            };
+
+            wordElement.innerText = wordData.word;
+            optionsElement.innerHTML = "";
+            
+            wordData.options.forEach((option, index) => {
+                const li = document.createElement("li");
+                li.innerText = option;
+                li.onclick = function () {
+                    if (index === wordData.correct) {
+                        alert("Correct!");
+                    } else {
+                        alert("Try again!");
+                    }
+                };
+                optionsElement.appendChild(li);
+            });
+        }
+
+        window.onload = loadVocabularyTest;
+            // 題目與選項
+        const questions = [
+            {
+                word: 'Abundant',
+                options: ['Rare', 'Plentiful', 'Scarce', 'Boring'],
+                correctAnswer: 2
+            },
+            {
+                word: 'Diligent',
+                options: ['Lazy', 'Hardworking', 'Careless', 'Forgetful'],
+                correctAnswer: 2
+            },
+            // 可以繼續添加更多問題
+        ];
+
+        let currentQuestion = 0;
+
+        function loadQuestion() {
+            const question = questions[currentQuestion];
+            document.getElementById('word').innerText = question.word;
+            const options = document.getElementById('options');
+            options.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const li = document.createElement('li');
+                li.innerText = option;
+                li.setAttribute('onclick', `checkAnswer(${index + 1})`);
+                options.appendChild(li);
+            });
+        }
+
+        function checkAnswer(selectedOption) {
+            const question = questions[currentQuestion];
+            const feedback = document.getElementById('feedback');
+            const resultMessage = document.getElementById('result-message');
+            
+            if (selectedOption === question.correctAnswer) {
+                resultMessage.innerText = 'Correct! Well done.';
+            } else {
+                resultMessage.innerText = 'Incorrect. Try again!';
+            }
+            
+            feedback.style.display = 'block';
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                loadQuestion();
+                document.getElementById('feedback').style.display = 'none';
+            } else {
+                alert('You have completed all the questions!');
+            }
+        }
+
+        // 初始化加載第一題
+        loadQuestion();
+    </script>
+
+
+</body>
+<footer class="footer">
+    <div class="footer-container">
+        <!-- 聯絡我們區塊 -->
+        <div class="contact-us">
+            <h3>聯絡我們</h3>
+            <ul>
+                <li><i class="fas fa-phone"></i><a href="tel:02 3322 2777"> 電話：02 3322 2777</a></li>
+                <li><i class="fas fa-map"></i><a href="https://maps.app.goo.gl/3NMVwufcbbTrfQNz6" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
+                <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d14459.01851827243!2d121.5254698!3d25.0423998!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a970a11a84ad%3A0x58e05f2528812097!2z5ZyL56uL6Ie65YyX5ZWG5qWt5aSn5a24!5e0!3m2!1szh-TW!2stw!4v1728891709611!5m2!1szh-TW!2stw" 
+                width="300"
+                height="250"
+                style="border:0;"
+                allowfullscreen=""
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2024 TOEIC學習平台 版權所有</p>
+    </div>
+</footer>
+</html>
