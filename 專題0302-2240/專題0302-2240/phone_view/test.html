@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOEIC學習平台 - 測驗平台</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/test.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="header">
+        <button class="menu-btn" id="menu-btn">☰</button>
+        <h1>TOEIC學習平台</h1>
+    </div>
+    
+    <!-- 導航菜單容器 -->
+    <div class="nav-container" id="nav-container">
+        <div class="nav-buttons">
+            <a href="home.html" target="_self"><button class="nav-btn"><i class="fas fa-home"></i> 首頁</button></a>
+            <a href="test.html" target="_self"><button class="nav-btn current"><i class="fas fa-file-alt"></i> 測驗平台</button></a>
+            <a href="user.html" target="_self"><button class="nav-btn"><i class="fas fa-user"></i> 會員註冊/登入</button></a>
+        </div>
+    </div>
+    
+    <!-- 背景遮罩 -->
+    <div class="nav-overlay" id="nav-overlay"></div>
+
+    <h1>選擇測驗類型</h1>
+    <div class="container">
+        <!-- 智能AI閱讀測驗（未解鎖時鎖住） -->
+        <div class="test-box locked" id="ai-test-box">
+            <h2>智能AI閱讀測驗</h2>
+            <p>透過AI產生文章，分析閱讀能力。</p>
+            <button class="unlock-btn" id="unlock-btn">
+                付費解鎖
+            </button>
+        </div>                
+        
+        <!-- 閱讀測驗 -->
+        <div class="test-box" id="reading-test-box">
+            <h2>閱讀測驗</h2>
+            <p>標準閱讀理解測驗，適合日常練習。</p>
+            <button class="free-test" id="reading-test-btn">
+                開始測驗
+            </button>
+        </div>
+        
+        <!-- 單字測驗 -->
+        <div class="test-box" id="vocab-test-box">
+            <h2>單字測驗</h2>
+            <p>測試您的詞彙量，提升語言能力。</p>
+            <button class="free-test" id="vocab-test-btn">
+                開始測驗
+            </button>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <!-- 聯絡我們區塊 -->
+            <div class="contact-us">
+                <h3>聯絡我們</h3>
+                <ul>
+                    <li><i class="fas fa-phone"></i><a href="tel:02 3322 2777"> 電話：02 3322 2777</a></li>
+                    <li><i class="fas fa-map"></i><a href="https://maps.app.goo.gl/3NMVwufcbbTrfQNz6" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d14459.01851827243!2d121.5254698!3d25.0423998!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a970a11a84ad%3A0x58e05f2528812097!2z5ZyL56uL6Ie65YyX5ZWG5qWt5aSn5a24!5e0!3m2!1szh-TW!2stw!4v1728891709611!5m2!1szh-TW!2stw" 
+                    width="100%"
+                    height="200"
+                    style="border:0;"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 TOEIC學習平台 版權所有</p>
+        </div>
+    </footer>
+
+    <script>
+        // 漢堡選單功能
+        document.addEventListener("DOMContentLoaded", function() {
+            const menuBtn = document.getElementById("menu-btn");
+            const navContainer = document.getElementById("nav-container");
+            const navOverlay = document.getElementById("nav-overlay");
+            
+            // 切換選單顯示狀態
+            menuBtn.addEventListener("click", function() {
+                navContainer.classList.toggle("open");
+                navOverlay.classList.toggle("open");
+            });
+            
+            // 點擊背景關閉選單
+            navOverlay.addEventListener("click", function() {
+                navContainer.classList.remove("open");
+                navOverlay.classList.remove("open");
+            });
+            
+            // 測驗按鈕點擊事件
+            let isPaidUser = false; // 初始狀態：未付費
+            
+            // 付費解鎖按鈕事件
+            document.getElementById("unlock-btn").addEventListener("click", function(event) {
+                event.stopPropagation();
+                if (!isPaidUser) {
+                    if (confirm("是否支付 $99 解鎖 AI 測驗？")) {
+                        isPaidUser = true;
+                        unlockAITest();
+                    }
+                }
+            });
+            
+            // 解鎖 AI 測驗
+            function unlockAITest() {
+                let aiBox = document.getElementById("ai-test-box");
+                aiBox.classList.remove("locked");
+                aiBox.classList.add("unlocked");
+                
+                // 更改按鈕文字
+                const unlockBtn = document.getElementById("unlock-btn");
+                unlockBtn.textContent = "開始測驗";
+                unlockBtn.className = "free-test";
+                
+                // 點擊後前往 AI 測驗頁面
+                unlockBtn.addEventListener("click", function(event) {
+                    event.stopPropagation();
+                    window.location.href = "ai_reading_test.html";
+                });
+                
+                aiBox.addEventListener("click", function() {
+                    window.location.href = "ai_reading_test.html";
+                });
+            }
+            
+            // 閱讀測驗點擊事件
+            document.getElementById("reading-test-box").addEventListener("click", function() {
+                window.location.href = "reading_test.html";
+            });
+            
+            document.getElementById("reading-test-btn").addEventListener("click", function(event) {
+                event.stopPropagation();
+                window.location.href = "reading_test.html";
+            });
+            
+            // 單字測驗點擊事件
+            document.getElementById("vocab-test-box").addEventListener("click", function() {
+                window.location.href = "vocab_test.html";
+            });
+            
+            document.getElementById("vocab-test-btn").addEventListener("click", function(event) {
+                event.stopPropagation();
+                window.location.href = "vocab_test.html";
+            });
+            
+            // AI 測驗點擊事件 (鎖定狀態下點擊卡片會顯示付費提示)
+            document.getElementById("ai-test-box").addEventListener("click", function() {
+                if (!isPaidUser) {
+                    alert("此功能需要付費解鎖！");
+                }
+            });
+        });
+    </script>
+</body>
+</html>

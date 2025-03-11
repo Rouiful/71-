@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOEIC學習平台 - 筆記中心</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+        h1{
+            text-align: center;
+            color: #58585b;
+        }
+
+        p{
+            font-weight: bold;
+        }
+        /* 主要內容區域 */
+        .main-content {
+            flex: 1;
+            padding: 10px;
+            padding-right: 0px;
+            padding-left: 0px;
+            transition: margin-left 0.3s; /* 當側邊欄開啟時，主要內容區域會平移 */
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            background: linear-gradient(#86c0e6 30%,#bdd9ec 70%);
+            color: #58585b;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1;
+        }
+
+        /* 菜單按鈕樣式 */
+        .menu-btn {
+            font-size: 24px;
+            background-color: transparent;
+            color: #58585b;
+            border: none;
+            cursor: pointer;
+            padding: 10px 15px;
+            margin-right: 20px; 
+            border-radius: 5px;
+        }
+
+        .menu-btn1 {
+            font-size: 24px;
+            background-color: transparent;
+            color: #58585b;
+            border: none;
+            cursor: pointer;
+            padding-top: 17px ;
+            padding-left: 30px;
+            padding-bottom: 20px;
+            margin-right: 20px; 
+            border-radius: 5px;
+        }
+
+        /* 當前頁面按鈕樣式 */
+        .current {
+            background-color: #58585b !important;
+            color: #fff !important;
+            pointer-events: none;
+            cursor: default;
+        }
+
+        /* 標題樣式 */
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        /* 導覽列按鈕容器 */
+        .nav-buttons {
+            margin-right: auto;
+            display: flex;
+            gap: 10px; /* 按鈕之間的間距 */
+        }
+
+        /* 導覽列按鈕樣式 */
+        .nav-btn {
+            background-color: #dae9f6;
+            color:	#58585b;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .nav-btn:hover {
+            background-color: 	#73a5d3;
+            color: #fff;
+        }
+
+        /* 響應式設計，適應不同螢幕大小 */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column; /* 垂直堆疊 */
+                align-items: stretch;
+            }
+            .nav-buttons {
+                justify-content: center;
+            }
+        }
+
+        
+        .content {
+            margin: 20px;
+            margin-left: 0px;
+            margin-right: 0px;
+            padding: 20px;
+            padding-right: 0px;
+            padding-left: 0px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center; /* 讓區塊在水平方向置中 */
+            gap: 20px; /* 區塊之間的間距 */
+            width: 80%;
+            margin: 100px auto; /* 垂直置中 */
+        }
+
+        
+        .test-box {
+            width: 30%;
+            padding: 40px;
+            text-align: center;
+            background: #86c0e6;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, background 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .test-box:hover {
+            background: #73a5d3;
+            transform: scale(1.05);
+        }
+        
+        h2 {
+            margin: 0 0 10px;
+        }
+        
+        .locked {
+        background: #ccc; /* 灰色背景，表示鎖定 */
+        cursor: not-allowed;
+        position: relative;
+        }
+
+        .locked h2,
+        .locked p {
+            opacity: 0.5; /* 讓文字變淡，顯示鎖定狀態 */
+        }
+
+        /* 付費解鎖按鈕 */
+        .unlock-btn {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .unlock-btn:hover {
+            background-color: darkred;
+        }
+
+        /* 免費測驗按鈕 */
+        .free-test {
+            background-color: #4CAF50; /* 綠色 */
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            border: none;
+        }
+
+        .free-test:hover {
+            background-color: #388E3C; /* 深綠色 */
+        }
+        /* Footer容器樣式 */
+        .footer {
+            background: linear-gradient(#bdd9ec 30%, #86c0e6 70%);
+            color: #6c4409;
+            padding: 40px 20px;
+            text-align: center;
+            position: relative; /* 確保 z-index 生效 */
+            z-index: -1; /* 設置最低層級 */
+        }
+
+        .footer-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        /* 單個區塊的樣式 */
+        .footer .about-us,
+        .footer .contact-us,
+        .footer .social-media {
+            width: 20%;
+            padding: 10px;
+        }
+
+        .footer h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #6c4409;
+        }
+
+        .footer p,
+        .footer ul {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* 聯絡方式樣式 */
+        .footer .contact-us ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer .contact-us li {
+            margin-bottom: 10px;
+        }
+
+        /* 版權聲明樣式 */
+        .footer-bottom{
+            padding: 10px;
+        }
+
+        .footer-bottom p {
+            font-size: 12px;
+            color: #6c4409;
+        }
+
+        /* 當前頁面按鈕樣式改變 */
+        a.current .nav-btn {
+            background-color: #6c4409;
+            color: #fff;
+            pointer-events: none; /* 禁用點擊 */
+            cursor: default;
+            position: relative;
+        }
+        /* 開始上傳、進入平台、開始購買按鈕的深綠色樣式 */
+        .test-box button {
+            background-color: #388E3C; /* 深綠色 */
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .test-box button:hover {
+            background-color: #2C6B2F; /* 更深的綠色 */
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="menu-btn" id="menu-btn">☰</button>
+        <h1>TOEIC學習平台</h1>
+        <div class="nav-buttons">
+            <a href="home.html" target="_self"><button class="nav-btn"><i class="fas fa-home"></i> 首頁</button></a>
+            <a href="test.html" target="_self"><button class="nav-btn"><i class="fas fa-file-alt"></i> 測驗平台</button></a>
+            <a href="notes.html" target="_self"><button class="nav-btn"><i class="fas fa-file-alt"></i> 筆記中心</button></a>
+            <a href="user.html" target="_self"><button class="nav-btn"><i class="fas fa-user"></i> 會員註冊/登入</button></a>                        
+        </div>
+    </div>
+
+    <h1>筆記中心</h1>
+    <div class="container">
+        <div class="test-box" onclick="location.href='upload_notes.html'">
+            <h2>筆記上傳</h2>
+            <p>上傳您的筆記</p>
+            <button>開始上傳</button>
+        </div>
+        <div class="test-box" onclick="location.href='platform_notes.html'">
+            <h2>筆記平台</h2>
+            <p>瀏覽並管理您的筆記資料。</p>
+            <button>進入平台</button>
+        </div>
+        <div class="test-box" onclick="location.href='trade_notes.html'">
+            <h2>購買筆記</h2>
+            <p>購買其他使用者的筆記</p>
+            <button>開始購買</button>
+        </div>
+    </div>
+    <footer class="footer">
+        <div class="footer-container">
+            <!-- 聯絡我們區塊 -->
+            <div class="contact-us">
+                <h3>聯絡我們</h3>
+                <ul>
+                    <li><i class="fas fa-phone"></i><a href="tel:02 3322 2777"> 電話：02 3322 2777</a></li>
+                    <li><i class="fas fa-map"></i><a href="https://maps.app.goo.gl/3NMVwufcbbTrfQNz6" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d14459.01851827243!2d121.5254698!3d25.0423998!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a970a11a84ad%3A0x58e05f2528812097!2z5ZyL56uL6Ie65YyX5ZWG5qWt5aSn5a24!5e0!3m2!1szh-TW!2stw!4v1728891709611!5m2!1szh-TW!2stw" 
+                    width="300"
+                    height="250"
+                    style="border:0;"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 TOEIC學習平台 版權所有</p>
+        </div>
+    </footer>
+    </html>
