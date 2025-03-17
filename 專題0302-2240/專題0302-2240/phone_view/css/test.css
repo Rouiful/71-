@@ -1,0 +1,95 @@
+h1 {
+    font-size: 1.5rem;
+    text-align: center;
+    color: var(--primary-color);
+    margin: 20px 0 15px;
+}
+
+.container {
+    padding: 0 15px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.test-box {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px var(--shadow-color);
+    padding: 15px;
+    transition: transform 0.3s, box-shadow 0.3s;
+    cursor: pointer;
+}
+
+.test-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.test-box h2 {
+    color: var(--primary-color);
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.test-box p {
+    color: #666;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.test-box button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    color: white;
+    font-size: 1rem;
+    display: block;
+    width: 100%;
+    transition: background-color 0.3s;
+}
+
+.free-test {
+    background-color: var(--primary-color);
+}
+
+.free-test:hover {
+    background-color: #5aa8dd;
+}
+
+.unlock-btn {
+    background-color: #6c757d;
+}
+
+.unlock-btn:hover {
+    background-color: #5a6268;
+}
+
+/* 未解鎖的測驗樣式 */
+.locked {
+    position: relative;
+    overflow: hidden;
+}
+
+.locked::before {
+    content: "🔒";
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 1.5rem;
+}
+
+.locked h2, .locked p {
+    opacity: 0.7;
+}
+
+/* 解鎖後的樣式 */
+.unlocked button {
+    background-color: var(--primary-color);
+}
+
+.unlocked button:hover {
+    background-color: #5aa8dd;
+}

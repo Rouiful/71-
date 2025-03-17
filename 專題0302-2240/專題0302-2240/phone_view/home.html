@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOEIC學習平台</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/home.css">
+    <!-- 引入icon -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="header">
+        <button class="menu-btn" id="menu-btn">☰</button>
+        <h1>TOEIC學習平台</h1>
+    </div>
+    
+    <!-- 導航菜單容器 -->
+    <div class="nav-container" id="nav-container">
+        <div class="nav-buttons">
+            <a href="home.html" target="_self"><button class="nav-btn current"><i class="fas fa-home"></i> 首頁</button></a>
+            <a href="test.html" target="_self"><button class="nav-btn"><i class="fas fa-file-alt"></i> 測驗平台</button></a>
+            <a href="user.html" target="_self"><button class="nav-btn"><i class="fas fa-user"></i> 會員註冊/登入</button></a>                        
+        </div>
+    </div>
+    
+    <!-- 背景遮罩 -->
+    <div class="nav-overlay" id="nav-overlay"></div>
+
+    <!-- 主要內容區域 -->
+    <div class="main-content">
+        <div class="content">
+            <div class="marquee-container">
+                <div class="marquee-text">
+                    <h2>探索英語學習的無限可能，讓您的進步從這裡開始，打造專屬於您的高效多益學習之旅！</h2>
+                </div>
+            </div>
+        </div>
+        <div class="scroll-down">⬇ 滑動以查看更多內容</div>  
+        <!-- 輪播圖 -->
+        <div class="carousel">
+            <div class="carousel-images" id="carousel-images">
+                <img src="https://blog.tripbaa.com/wp-content/uploads/2020/10/plan_2020090316351725750_b.jpg" 
+                alt="TOEIC學習環境" class="carousel-image" loading="lazy">
+                <img src="https://www.necoast-nsa.gov.tw/FileArtPic.ashx?id=791&w=600&h=400" 
+                alt="學習場景" class="carousel-image" loading="lazy">
+                <img src="https://pgw.udn.com.tw/gw/photo.php?u=https://uc.udn.com.tw/photo/2024/09/25/realtime/30605412.jpg&s=Y&x=0&y=0&sw=7629&sh=5089&exp=3600" 
+                alt="學習成果展示" class="carousel-image" loading="lazy">
+            </div>
+            <button class="carousel-button carousel-button-left" id="prevBtn" aria-label="上一張圖片">❮</button>
+            <button class="carousel-button carousel-button-right" id="nextBtn" aria-label="下一張圖片">❯</button>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <!-- 聯絡我們區塊 -->
+            <div class="contact-us">
+                <h3>聯絡我們</h3>
+                <ul>
+                    <li><i class="fas fa-phone"></i><a href="tel:02 3322 2777"> 電話：02 3322 2777</a></li>
+                    <li><i class="fas fa-map"></i><a href="https://maps.app.goo.gl/3NMVwufcbbTrfQNz6" target="_blank" rel="noopener noreferrer"> 地址：100台北市中正區濟南路一段321號</a></li>
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d14459.01851827243!2d121.5254698!3d25.0423998!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a970a11a84ad%3A0x58e05f2528812097!2z5ZyL56uL6Ie65YyX5ZWG5qWt5aSn5a24!5e0!3m2!1szh-TW!2stw!4v1728891709611!5m2!1szh-TW!2stw" 
+                    width="100%"
+                    height="250"
+                    style="border:0;"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    title="Google 地圖位置">
+                    </iframe>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 TOEIC學習平台 版權所有</p>
+        </div>
+    </footer>
+
+    <script>
+        // 漢堡選單功能
+        document.addEventListener("DOMContentLoaded", function() {
+            const menuBtn = document.getElementById("menu-btn");
+            const navContainer = document.getElementById("nav-container");
+            const navOverlay = document.getElementById("nav-overlay");
+            
+            // 切換選單顯示狀態
+            menuBtn.addEventListener("click", function() {
+                navContainer.classList.toggle("open");
+                navOverlay.classList.toggle("open");
+            });
+            
+            // 點擊背景關閉選單
+            navOverlay.addEventListener("click", function() {
+                navContainer.classList.remove("open");
+                navOverlay.classList.remove("open");
+            });
+            
+            // 輪播圖功能
+            const carouselImages = document.getElementById("carousel-images");
+            const images = document.querySelectorAll(".carousel-image");
+            const prevBtn = document.getElementById("prevBtn");
+            const nextBtn = document.getElementById("nextBtn");
+
+            let currentIndex = 0;
+            const totalImages = images.length;
+            
+            function updateCarousel() {
+                // 獲取當前圖片寬度
+                const imageWidth = images[0].clientWidth;
+                carouselImages.style.transform = `translateX(${-currentIndex * imageWidth}px)`;
+            }
+
+            function nextSlide() {
+                currentIndex = (currentIndex + 1) % totalImages;
+                updateCarousel();
+            }
+
+            function prevSlide() {
+                currentIndex = (currentIndex - 1 + totalImages) % totalImages;
+                updateCarousel();
+            }
+
+            // 自動輪播
+            let autoPlay = setInterval(nextSlide, 3000);
+
+            // 滑鼠移入輪播區域時暫停自動輪播
+            const carousel = document.querySelector(".carousel");
+            carousel.addEventListener("mouseenter", function() {
+                clearInterval(autoPlay);
+            });
+            
+            // 滑鼠移出輪播區域時恢復自動輪播
+            carousel.addEventListener("mouseleave", function() {
+                autoPlay = setInterval(nextSlide, 3000);
+            });
+
+            // 按鈕點擊事件
+            nextBtn.addEventListener("click", function() {
+                clearInterval(autoPlay); // 停止自動輪播
+                nextSlide();
+                autoPlay = setInterval(nextSlide, 3000); // 重新啟動輪播
+            });
+
+            prevBtn.addEventListener("click", function() {
+                clearInterval(autoPlay); // 停止自動輪播
+                prevSlide();
+                autoPlay = setInterval(nextSlide, 3000); // 重新啟動輪播
+            });
+
+            // 螢幕尺寸變化時更新輪播圖
+            window.addEventListener("resize", updateCarousel);
+
+            // 支援觸控滑動功能
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            carousel.addEventListener("touchstart", function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+                clearInterval(autoPlay);
+            }, false);
+            
+            carousel.addEventListener("touchend", function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+                autoPlay = setInterval(nextSlide, 3000);
+            }, false);
+            
+            function handleSwipe() {
+                if (touchEndX < touchStartX - 50) {
+                    nextSlide();
+                } else if (touchEndX > touchStartX + 50) {
+                    prevSlide();
+                }
+            }
+
+            // 初始化輪播圖
+            updateCarousel();
+        });
+    </script>
+</body>
+</html>

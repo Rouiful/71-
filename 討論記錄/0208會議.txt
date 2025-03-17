@@ -1,0 +1,30 @@
+﻿1 學習科目
+
+ - 英文學習，包含語法、詞彙、閱讀理解、寫作與口語練習
+
+2 學生上傳內容
+
+ - 手寫或打字筆記，包含圖片、文件、文字內容
+ - 難題或疑問，透過拍照上傳或文字輸入
+ - 作文或口語錄音，讓 AI 檢查錯誤並提供建議
+
+3 系統處理方式
+
+ - OCR 與 NLP 技術將手寫或圖片筆記轉換為可編輯文本（使用 LangChain 整合 OCR 模型，如 Tesseract 或 PaddleOCR）
+ - 檢索增強生成（RAG）技術從筆記與題庫中搜尋相關知識點並提供解答（LangChain 構建向量資料庫，整合 FAISS、ChromaDB）
+ - GPT 模型分析語法、詞彙、結構錯誤並提供修正與解釋（使用 LangChain 的 LLMChain 來與 GPT 交互，提供即時回饋）
+ - 自動生成心智圖、條列摘要與標註關鍵概念（透過 LangChain 的 Prompt Templates 與 Chains，優化筆記組織）
+  - 透過語音轉文字將口語對話快速製作成筆記（透過 LangChain 整合 Whisper API 進行語音轉文字，並結合 NLP 進行格式化、摘要與關鍵詞提取）
+
+4 學習輔助功能
+
+ - 智能搜索：用自然語言查找筆記內容（LangChain 設計 RetrievalQA 進行高效檢索）
+ - AI 測驗生成：根據筆記內容自動產生適應性測驗（LangChain 的 Chain 與 Few-shot Learning 生成客製化題目）
+ - 錯題復習與解析：整理錯題，提供 AI 詳解與補充知識（使用 LangChain 記憶模組記錄學習歷程，優化個人化學習）
+ - AI 對話學習：模擬語言對話，提供語音或文字互動練習（LangChain 整合 OpenAI Whisper、Text-to-Speech 模型）
+
+5 學習群組功能
+
+ - 智能組隊：根據學習風格與筆記相似度自動匹配學習夥伴（LangChain 透過向量相似度搜尋進行匹配）
+ - 組內競賽與排行：生成競賽題目，讓學生進行知識點對戰（LangChain 自動生成問題，並評估回答準確度）
+ - 筆記共享與協作：多人協作編輯筆記，AI 提供知識補充與最佳化建議（LangChain 整合 Docs QA 讓筆記內容互動更智慧）
