@@ -1,0 +1,161 @@
+{
+  "name": "Get New from Newsapi",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "95b5160d-b981-4e8a-b298-bbe67e3cbfb4",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://newsapi.org/v2/top-headlines",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "apiKey",
+              "value": "e04fd79d9f6f4917ac5ffc9a7f73edb4"
+            },
+            {
+              "name": "category",
+              "value": "science"
+            },
+            {
+              "name": "language",
+              "value": "en"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "2e0bb1ee-cd2b-48b6-84e2-ea2c58dd8528",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f3c778e3-cc85-4525-816a-878dcf1aa2b7",
+              "name": "prompt",
+              "value": "=請分析這篇新聞: {{ $json.articles[0].url }} 並將他改為 TOEIC 閱讀文章的格式\n這個是他在資料庫內的類別: science\n然後生成以下 JSON 格式的回應：\n{\n  \"Title\": \"提取或生成一個簡潔且能反映文章主題的標題\",\n  \"Article\": \"摘要保留原文最重要的資訊\",\n  \"Category\": \"根據我提供的類別填入\",\n  \"Difficulty\": \"基於用詞複雜性、句子結構和主題專業性來評估（簡單、中等或高級）\"\n}\n\n請只返回 JSON 格式的回覆，不要包含其他解釋。\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ],
+      "id": "795bf42c-72c9-44d7-9647-dc3bc299687a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "c5S2dVMugOJ41DSr",
+          "mode": "list",
+          "cachedResultName": "Create TOEIC reading article By Tag"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "news_url": "={{ $json.news_url }}"
+          },
+          "matchingColumns": [
+            "news_url"
+          ],
+          "schema": [
+            {
+              "id": "news_url",
+              "displayName": "news_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "d9d8f952-5c06-49c0-9b25-53b26825b8f4",
+      "name": "Execute Workflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9d61f797-f86e-4439-adcf-f1c2643491af",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b9bae86621ef488435083a4834adc99ad9c3f696cba3a7b4279cebff39982c9e"
+  },
+  "id": "dPhehJxgNhi4CeyI",
+  "tags": []
+}
