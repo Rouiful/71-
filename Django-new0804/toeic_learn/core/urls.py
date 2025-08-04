@@ -26,15 +26,10 @@ urlpatterns = [
     path("register/",views.register_view, name="register"),
     
     path('test/', views.test_page, name='test'),
-    path('ai_reading_test', views.ai_reading_test, name='ai_reading_test'),
     path('reading_test/', views.reading_test, name='reading_test'),
     path('reading_test/<int:passage_id>/', views.reading_test, name='reading_test_detail'),
-    path('listening_test', views.listening_test, name='listening_test'),
     path("logout/", LogoutView.as_view(next_page="login"), name="logout"),
     path('record/', views.record, name='record'),
-    path('generate-reading/', views.generate_reading_view, name='generate_reading'),
-    path('generated-reading-test/', views.generated_reading_test_view, name='generated_reading_test'),
-    path('api/generate-reading-passage/', views.generate_reading_passage_api, name='generate_reading_passage_api'),
     path('api/submit_test_answer/', views.submit_test_answer, name='submit_test_answer'),
     path('test_result/', views.test_result, name='test_result'),
     path('all_test/', views.all_test_view, name='all_test'),
@@ -43,8 +38,7 @@ urlpatterns = [
     path('part5/', views.part5, name='part5'), 
     path('part6/', views.part6, name='part6'),
     path('part7/', views.part7, name='part7'), 
-    path('exam/part/<int:part_number>/', views.exam_part_view, name='exam_part_view'),
-    path('part6/submit/', views.submit_part6_answers, name='submit_part6_answers'),
+    # path('exam/part/<int:part_number>/', views.exam_part_view, name='exam_part_view'),
     path('api/update_exam_status/', views.update_exam_status, name='update_exam_status'),
 ]
 

@@ -163,7 +163,7 @@
             <table class="table-standard">
                 <thead>
                     <tr>
-                        <th>測驗名稱</th>
+                        <th>測驗類型</th>
                         <th>日期</th>
                         <th>分數</th>
                     </tr>
@@ -171,7 +171,7 @@
                 <tbody>
                     {% for result in exam_results %}
                     <tr>
-                        <td>{{ result.session.exam.title }}</td>
+                        <td>{{ result.part_display }}</td>
                         <td>{{ result.completed_at|date:"Y/m/d" }}</td>
                         <td>{{ result.total_score }}</td>
                     </tr>

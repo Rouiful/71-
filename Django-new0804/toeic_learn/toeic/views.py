@@ -63,17 +63,6 @@ def register_view(request):
 def test_page(request):
     return render(request, 'test.html')
 
-def generate_reading_view(request):
-    return render(request, 'generate_form.html')
-
-def ai_reading_test(request):
-    return render(request, 'ai_reading_test.html')
-
-def listening_test(request):
-    return render(request, 'listening_test.html')
-
-def generated_reading_test_view(request):
-    return render(request, 'generated_reading_test.html')
 
 
 # ===== 以下為去除 n8n 呼叫的 API 及頁面 =====
@@ -188,6 +177,13 @@ def submit_test_answer(request):
         reading_total = reading_correct = 0
         listen_total = listen_correct = 0
 
+        # 取得考卷
+        exam = session.exam
+        exam_type = exam.exam_type
+
+        # 取得聽力文字稿 (如果有的話)
+        transcript = get_listening_transcript(exam)
+
         for qid, selected_option in answers.items():
             try:
                 question = Question.objects.get(question_id=qid)
@@ -240,6 +236,9 @@ def submit_test_answer(request):
             })
 
         # 分數計算
+        print(f"correct_total: {correct_total}")
+        print(f"total_questions: {total_questions}")
+
         def calc_score(correct, total):
             return round((correct / total * 100), 2) if total else 0.0
 
@@ -247,7 +246,9 @@ def submit_test_answer(request):
         listen_score = calc_score(listen_correct, listen_total)
         total_score = calc_score(correct_total, total_questions)
 
-        is_passed = total_score >= float(session.exam.passing_score)
+        print(f"total_score: {total_score}")
+
+        is_passed = total_score >= float(exam.passing_score)
 
         # 儲存 ExamResult
         ExamResult.objects.create(
@@ -266,7 +267,14 @@ def submit_test_answer(request):
         session.end_time = timezone.now()
         session.save()
 
-        return JsonResponse({
+        # 判斷測驗類型
+        test_type = '閱讀測驗'
+        if exam_type == 'listen':
+            test_type = '聽力測驗'
+        elif exam_type == 'mixed':
+            test_type = '綜合測驗'
+
+        response_data = {
             'success': True,
             'data': {
                 'score': total_score,
@@ -276,11 +284,41 @@ def submit_test_answer(request):
                 'reading_score': reading_score,
                 'listen_score': listen_score,
                 'question_details': question_details,
+                'test_type': test_type,
             }
-        })
+        }
+
+        # 如果是聽力測驗，加入文字稿
+        if transcript:
+            response_data['data']['listening_script'] = transcript
+
+        return JsonResponse(response_data)
 
     except Exception as e:
+        print(f"Error in submit_test_answer: {str(e)}")  # 記錄錯誤訊息
         return JsonResponse({'success': False, 'error': str(e)})
+
+def get_listening_transcript(exam):
+    """
+    取得聽力測驗的文字稿
+    """
+    try:
+        # 找到考卷中第一個有 ListeningMaterial 的題目，並取出文字稿
+        first_listening_question = Question.objects.filter(
+            examquestion__exam=exam,
+            material__isnull=False
+        ).first()
+
+        if first_listening_question and first_listening_question.material:
+            transcript = first_listening_question.material.transcript
+            print(f"Transcript found: {transcript}")
+            return transcript
+        else:
+            print("No transcript found for this exam")
+            return None
+    except Exception as e:
+        print(f"Error getting transcript: {str(e)}")
+        return None
 
 
 def test_result(request):
@@ -305,11 +343,84 @@ def part2(request):
     """
     return render(request, 'part2.html')
 
+import json
+import random
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from .models import Exam, ExamQuestion, ExamSession, Question, ListeningMaterial
+
 def part3(request):
-    """
-    處理「簡短對白」頁面顯示。
-    """
-    return render(request, 'part3.html') 
+    part_number = 3
+
+    # 取得所有有 Part 3 題目的考卷
+    exam_ids = ExamQuestion.objects.filter(question__part=part_number).values_list('exam_id', flat=True).distinct()
+    if not exam_ids:
+        return render(request, 'part3.html', {'error': '目前沒有 Part 3 的考卷'})
+
+    selected_exam_id = random.choice(list(exam_ids))
+    exam = Exam.objects.get(pk=selected_exam_id)
+
+    # 取出這份考卷的所有 Part 3 題目
+    exam_questions = ExamQuestion.objects.filter(
+        exam=exam,
+        question__part=part_number
+    ).select_related('question').order_by('question_order')
+
+    # 以第一個有 material 的題目取出該段對話（ListeningMaterial）
+    material = None
+    questions_data = []
+
+    for eq in exam_questions:
+        q = eq.question
+        if not material and q.material:
+            material = q.material
+        questions_data.append({
+            'question_id': str(q.question_id),
+            'question_text': q.question_text,
+            'option_a_text': q.option_a_text,
+            'option_b_text': q.option_b_text,
+            'option_c_text': q.option_c_text,
+            'option_d_text': q.option_d_text,
+            'option_e_text': q.option_e_text,
+            'difficulty_level': q.difficulty_level,
+        })
+
+    if not material:
+        return render(request, 'part3.html', {'error': '考卷中未找到對應音檔'})
+
+    material_data = {
+        'audio_url': material.audio_url,
+        'transcript': material.transcript,
+        'topic': material.topic,
+        'accent': material.accent,
+        'listening_level': material.listening_level,
+        'source': material.source,
+    }
+
+    questions_json = json.dumps(questions_data)
+
+    # 建立使用者 session
+    user = request.user
+    if not user.is_authenticated:
+        return redirect('login')
+
+    session = ExamSession.objects.create(
+        exam=exam,
+        user=user,
+        time_limit_enabled=False,
+        start_time=timezone.now(),
+        end_time=timezone.now(),
+        status='in_progress',
+    )
+
+    context = {
+        'material': material_data,
+        'questions_json': questions_json,
+        'exam_id': exam.exam_id,
+        'session_id': session.session_id,
+    }
+    return render(request, 'part3.html', context)
+
 
 def part5(request):
     part_number = 5
@@ -424,27 +535,6 @@ def part6(request):
     return render(request, 'part6.html', context)
 
 
-@login_required
-@require_POST
-def submit_part6_answers(request):
-    user = request.user
-    exam_id = request.POST.get("exam_id")
-    question_ids = request.POST.getlist("question_ids[]")
-
-    for qid in question_ids:
-        question = Question.objects.get(id=qid)
-        selected_answer = request.POST.get(f"answer_{qid}")
-
-        # 儲存使用者作答
-        UserAnswer.objects.create(
-            user=user,
-            question=question,
-            selected_answer=selected_answer,
-            is_correct=(selected_answer == question.correct_answer),
-        )
-
-    messages.success(request, "作答完成，已儲存答案！")
-    return redirect("quiz:part6_result")
 
 def part7(request):
     part_number = 7
@@ -576,7 +666,7 @@ def update_exam_status(request):
 def record(request):
     user = request.user
 
-    # 歷史測驗紀錄 (保持不變)
+    # 歷史測驗紀錄
     exam_results = (
         ExamResult.objects
         .filter(session__user=user)
@@ -584,10 +674,14 @@ def record(request):
         .select_related('session__exam')
     )
 
+    # 為每個 ExamResult 物件增加 part_display 屬性
+    for result in exam_results:
+        result.part_display = result.session.exam.get_part_display()
+
     # 閱讀作答情況
     reading_total = UserAnswer.objects.filter(session__user=user, question__question_type='reading').count()
     reading_correct = UserAnswer.objects.filter(session__user=user, question__question_type='reading', is_correct=True).count()
-    
+
     # 聽力作答情況
     listening_total = UserAnswer.objects.filter(session__user=user, question__question_type='listen').count()
     listening_correct = UserAnswer.objects.filter(session__user=user, question__question_type='listen', is_correct=True).count()
@@ -613,12 +707,12 @@ def record(request):
             session__user=user,
             question__question_category=category_key
         )
-        
+
         total_in_category = category_answers.count()
         correct_in_category = category_answers.filter(is_correct=True).count()
-        
+
         percentage_in_category = int((correct_in_category / total_in_category) * 100) if total_in_category else 0
-        
+
         category_performance[category_key] = {
             'display_name': category_display_name,
             'total': total_in_category,
@@ -637,9 +731,9 @@ def record(request):
         'reading_correct': reading_correct,
         'listening_total': listening_total,
         'listening_correct': listening_correct,
-        'category_performance': category_performance, 
+        'category_performance': category_performance,
         'learning_suggestions': get_learning_suggestions(category_performance),
-        
+
     }
     return render(request, 'record.html', context)
 

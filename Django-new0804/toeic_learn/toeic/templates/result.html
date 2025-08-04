@@ -551,6 +551,13 @@
                 </div>
             </div>
 
+            <div id="listening-script-section" style="display:none; margin-bottom:30px;">
+            <div class="analysis-section">
+                <h3><i class="fas fa-headphones"></i> 聽力文字稿</h3>
+                <div id="listening-script-content"></div>
+                <div id="listening-script-note" style="margin-top:10px; color:#888; font-size:0.95em;"></div>
+            </div>
+            </div>
             <!-- 答題詳情 -->
             <div class="answer-details">
                 <h3><i class="fas fa-list-alt"></i> 答題詳情</h3>
@@ -676,6 +683,25 @@
 
             // 渲染 AI 回饋
             renderFeedback(data);
+
+            // 顯示聽力文字稿（僅聽力測驗）
+            if (data.test_type && data.test_type.includes('聽力')) {
+            const scriptSection = document.getElementById('listening-script-section');
+            const scriptContent = document.getElementById('listening-script-content');
+            const scriptNote = document.getElementById('listening-script-note');
+            // 假設 data.listening_script 是文字稿內容，data.listening_note 是補充說明
+            if (data.listening_script) {
+                scriptContent.innerHTML = `<pre style="white-space:pre-wrap; font-family:inherit;">${data.listening_script}</pre>`;
+                scriptSection.style.display = 'block';
+                scriptNote.textContent = data.listening_note || '（本文字稿僅供學習參考，請多加練習聽力理解）';
+            } else {
+                scriptContent.innerHTML = '<p>本次測驗暫無文字稿。</p>';
+                scriptSection.style.display = 'block';
+                scriptNote.textContent = '';
+            }
+            } else {
+            document.getElementById('listening-script-section').style.display = 'none';
+            }
         }
 
         function renderQuestionResults(data) {

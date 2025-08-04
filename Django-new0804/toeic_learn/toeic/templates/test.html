@@ -93,33 +93,7 @@
         </div>
     </div>
 
-    <script>
-        let isPaidUser = false; // 初始狀態：未付費
 
-        // 付費解鎖按鈕事件
-        document.getElementById("unlock-btn").addEventListener("click", function() {
-            if (!isPaidUser) {
-                if (confirm("是否支付 $99 解鎖 AI 測驗？")) {
-                    isPaidUser = true;
-                    unlockAITest();
-                }
-            }
-        });
-
-        // 解鎖 AI 測驗
-        function unlockAITest() {
-            let aiBox = document.getElementById("ai-test-box");
-            aiBox.classList.remove("locked");
-            aiBox.classList.add("unlocked");
-            aiBox.innerHTML = `
-                <h2>智能AI閱讀測驗</h2>
-                <p>透過AI產生文章，分析閱讀能力。</p>
-                <button class="free-test" onclick="window.location.href='{% url 'generate_reading' %}'">
-                    開始測驗
-                </button>
-            `;
-        }
-    </script>
     <footer class="footer">
         <div class="footer-container">
             <!-- 聯絡我們區塊 -->

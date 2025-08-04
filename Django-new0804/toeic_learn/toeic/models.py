@@ -61,7 +61,12 @@ REJECTION_REASON_CHOICES = [
     ('content_error', '內文有誤'),
     ('question_error', '題目有誤'),
 ]
-
+ACCENT_CHOICES = [
+    ('british', 'British'),
+    ('american', 'American'),
+    ('australian', 'Australian'),
+    ('canadian', 'Canadian'),
+]
 
 # ---------- Custom User Manager ----------
 
@@ -112,7 +117,7 @@ class ListeningMaterial(models.Model):
     material_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     audio_url = models.CharField(max_length=255,null=True,blank=True)
     transcript = models.TextField()
-    accent = models.CharField(max_length=50,null=True,blank=True)
+    accent = models.CharField(max_length=50, choices=ACCENT_CHOICES, null=True, blank=True)
     topic = models.CharField(max_length=255)
     listening_level = models.CharField(max_length=20, choices=LISTENING_LEVEL_CHOICES)
     source = models.CharField(max_length=255,null=True,blank=True)
@@ -213,10 +218,10 @@ class ExamResult(models.Model):
     session = models.OneToOneField(ExamSession, on_delete=models.CASCADE)
     total_questions = models.IntegerField()
     correct_answers = models.IntegerField()
-    total_score = models.DecimalField(max_digits=5, decimal_places=2)
+    total_score = models.IntegerField()
     is_passed = models.BooleanField()
-    reading_score = models.DecimalField(max_digits=5, decimal_places=2)
-    listen_score = models.DecimalField(max_digits=5, decimal_places=2)
+    reading_score = models.IntegerField()
+    listen_score = models.IntegerField()
     completed_at = models.DateTimeField()
 
 class ExamQuestion(models.Model):
