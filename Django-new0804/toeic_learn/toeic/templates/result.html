@@ -8,9 +8,8 @@
     <link rel="stylesheet" href="{% static 'css/common.css' %}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/result.css' %}">
-
     <style>
-        /* Part 3 文字稿的整體容器樣式 */
+        /* 你的原始 CSS 樣式，保持不變 */
         #listening-script-section {
             margin-bottom: 30px;
         }
@@ -82,8 +81,34 @@
             line-height: 1.6;
             color: #495057;
         }
+        
+        /* 新增的 CSS 樣式 */
+        .analysis-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background-color: #e9ecef;
+            border-radius: 6px;
+        }
+        .analysis-item span.percentage {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 1.1em;
+        }
+        .analysis-section .analysis-list {
+            margin-top: 20px;
+        }
+        .feedback-content ul {
+            padding-left: 20px;
+            list-style-type: '👉';
+        }
+        .feedback-content li {
+            margin-bottom: 10px;
+            padding-left: 10px;
+        }
     </style>
-
 </head>
 <body>
     <div class="header">
@@ -121,7 +146,6 @@
 
             <div class="analysis-section">
                 <h3><i class="fas fa-chart-bar"></i> 詳細分析</h3>
-                
                 <div class="stats-grid">
                     <div class="stat-card correct">
                         <i class="fas fa-check-circle"></i>
@@ -143,6 +167,11 @@
                 </div>
             </div>
 
+            <div class="analysis-section" id="personal-analysis-section" style="display:none;">
+                <div class="analysis-list" id="part-analysis-list"></div>
+                <div class="analysis-list" id="category-analysis-list"></div>
+            </div>
+
             <div id="listening-script-section" style="display:none; margin-bottom:30px;">
                 <div class="analysis-section">
                     <h3><i class="fas fa-headphones"></i> 聽力文字稿</h3>
@@ -154,13 +183,13 @@
             <div class="answer-details">
                 <h3><i class="fas fa-list-alt"></i> 答題詳情</h3>
                 <div id="question-results">
-                    </div>
+                </div>
             </div>
 
             <div class="feedback-section">
                 <h3><i class="fas fa-lightbulb"></i> 學習建議</h3>
                 <div id="ai-feedback" class="feedback-content">
-                    </div>
+                </div>
             </div>
 
             <div id="error-message" class="error-section" style="display: none;">
@@ -192,8 +221,8 @@
                 <h3>聯絡我們</h3>
                 <ul>
                     <li><i class="fas fa-phone"></i><a href="tel:02 3322 2777"> 電話：02 3322 2777</a></li>
-                    <li><i class="fas fa-map"></i><a href="https://maps.app.goo.gl/yJ6h18H62g8P96GDA" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
-                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3615.000492801456!2d121.52336327599026!3d25.03975763806306!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a964a7801121%3A0xf69562ac16e91f1a!2zMTAw5Y-w5YyX5biC5Lit5a6a5Y2A6IiI5aSn6Lev5Y2A3LzEtMzIx6號!5e0!3m2!1szh-TW!2stw!4v1714559132535!5m2!1szh-TW!2stw" 
+                    <li><i class="fas fa-map"></i><a href="http://googleusercontent.com/maps.google.com/6" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
+                    <iframe src="http://googleusercontent.com/maps.google.com/7" 
                     width="300"
                     height="250"
                     style="border:0;"
@@ -311,8 +340,8 @@
                 }
                 
                 const transcript = (part === 'part2' && data.transcripts && data.transcripts[question.question_id])
-                                  ? data.transcripts[question.question_id] 
-                                  : null;
+                                 ? data.transcripts[question.question_id] 
+                                 : null;
 
                 html += `
                     <div class="question-result ${statusClass}">
@@ -345,6 +374,135 @@
             container.innerHTML = html;
         }
 
+        function renderFeedback(data) {
+            const container = document.getElementById('ai-feedback');
+            const suggestions = [];
+            const feedbackList = document.createElement('ul');
+            feedbackList.className = 'feedback-list';
+
+            // 根據總分給予整體建議
+            const accuracy = data.correct_answers && data.total_questions ?
+                Math.round((data.correct_answers / data.total_questions) * 100) : 0;
+            
+            if (accuracy >= 80) {
+                suggestions.push("表現優異！你的答題正確率很高，可以挑戰更進階的題目或加強弱點。");
+            } else if (accuracy >= 60) {
+                suggestions.push("表現良好，但仍有進步空間。建議針對錯誤較多的部分加強訓練。");
+            } else {
+                suggestions.push("正確率偏低，不用氣餒！建議從單字和文法基礎開始，逐步提升。");
+            }
+
+            // 根據 Part 的表現給予建議
+            if (data.part_analysis) {
+                const partNames = {
+                    'part2': 'Part 2 (問答)',
+                    'part3': 'Part 3 (簡短對話)',
+                    'part5': 'Part 5 (單句填空)',
+                    'part6': 'Part 6 (文章填空)',
+                    'part7': 'Part 7 (單篇閱讀)'
+                };
+                for (const [part, analysis] of Object.entries(data.part_analysis)) {
+                    const percentage = analysis.total > 0 ? (analysis.correct / analysis.total) : 0;
+                    if (part.startsWith('part') && percentage < 0.6 && analysis.total > 0) {
+                        if (part === 'part2' || part === 'part3') {
+                            suggestions.push(`你在${partNames[part]}的聽力表現較弱，可能是因為無法在短時間內理解對話。建議多進行聽力精聽練習。`);
+                        } else {
+                            suggestions.push(`你在${partNames[part]}的閱讀表現不佳，可能是因為閱讀速度或對特定題型不熟悉。建議多練習文章精讀與解題技巧。`);
+                        }
+                    }
+                }
+            }
+
+            // 根據題目類別表現給予建議
+            if (data.category_analysis) {
+                const categoryNames = {
+                    'tense': '時態',
+                    'pos': '詞性',
+                    'syntax': '句型結構',
+                    'vocab': '單字',
+                };
+                for (const [category, analysis] of Object.entries(data.category_analysis)) {
+                    const percentage = analysis.total > 0 ? (analysis.correct / analysis.total) : 0;
+                    if (percentage < 0.6 && analysis.total > 0) {
+                        suggestions.push(`你在「${categoryNames[category] || category}」類別的正確率較低，建議多加強相關文法或單字練習。`);
+                    }
+                }
+            }
+            
+            // 如果沒有具體建議，給出預設建議
+            if (suggestions.length === 0) {
+                suggestions.push('本次測驗表現平穩，請持續保持！');
+            }
+
+            suggestions.forEach(s => {
+                const li = document.createElement('li');
+                li.innerHTML = s;
+                feedbackList.appendChild(li);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(feedbackList);
+        }
+
+        function generateAnalysisList(analysisData) {
+            let html = '';
+            // 這裡已經調整為你的四個類別
+            const analysisNames = {
+                'part2': 'Part 2 (問答)',
+                'part3': 'Part 3 (簡短對話)',
+                'part5': 'Part 5 (單句填空)',
+                'part6': 'Part 6 (文章填空)',
+                'part7': 'Part 7 (單篇閱讀)',
+                'tense': '時態',
+                'pos': '詞性',
+                'syntax': '句型結構',
+                'vocab': '單字',
+            };
+
+            if (!analysisData) {
+                return '';
+            }
+
+            for (const [key, item] of Object.entries(analysisData)) {
+                if (item.total > 0) {
+                    const percentage = item.total > 0 ? Math.round((item.correct / item.total) * 100) : 0;
+                    const displayName = analysisNames[key] || key;
+                    html += `
+                        <div class="analysis-item">
+                            <span>${displayName}：答對 ${item.correct} 題 / 共 ${item.total} 題</span>
+                            <span class="percentage">${percentage}%</span>
+                        </div>
+                    `;
+                }
+            }
+            return html;
+        }
+
+        function renderAnalysisSections(data) {
+            const partAnalysisContainer = document.getElementById('part-analysis-list');
+            const categoryAnalysisContainer = document.getElementById('category-analysis-list');
+            const personalAnalysisSection = document.getElementById('personal-analysis-section');
+
+            const partAnalysisHtml = data.part_analysis ? generateAnalysisList(data.part_analysis) : '';
+            const categoryAnalysisHtml = data.category_analysis ? generateAnalysisList(data.category_analysis) : '';
+
+            if (partAnalysisHtml || categoryAnalysisHtml) {
+                personalAnalysisSection.style.display = 'block';
+                if (partAnalysisHtml) {
+                    partAnalysisContainer.innerHTML = `
+                        <h3><i class="fas fa-chart-pie"></i> 各部分表現</h3>
+                        ${partAnalysisHtml}
+                    `;
+                }
+                if (categoryAnalysisHtml) {
+                    categoryAnalysisContainer.innerHTML = `
+                        <h3><i class="fas fa-tags"></i> 題目類別分析</h3>
+                        ${categoryAnalysisHtml}
+                    `;
+                }
+            }
+        }
+
         function renderResult(data) {
             const totalQuestions = data.total_questions || 0;
             const correctAnswers = data.correct_answers || 0;
@@ -364,34 +522,7 @@
 
             renderQuestionResults(data);
             renderFeedback(data);
-        }
-
-        function renderFeedback(data) {
-            const container = document.getElementById('ai-feedback');
-            
-            if (data.feedback && data.feedback.length > 0) {
-                let html = '<ul>';
-                data.feedback.forEach(item => {
-                    html += `<li>${item}</li>`;
-                });
-                html += '</ul>';
-                container.innerHTML = html;
-            } else if (data.ai_feedback) {
-                container.innerHTML = `<p>${data.ai_feedback}</p>`;
-            } else {
-                const accuracy = data.correct_answers && data.total_questions ?
-                    Math.round((data.correct_answers / data.total_questions) * 100) : 0;
-                
-                let feedback = '';
-                if (accuracy >= 80) {
-                    feedback = '表現優秀！繼續保持這樣的學習狀態。';
-                } else if (accuracy >= 60) {
-                    feedback = '表現不錯，建議多練習弱項部分以提升分數。';
-                } else {
-                    feedback = '需要加強練習，建議重新複習相關內容並多做練習題。';
-                }
-                container.innerHTML = `<p>${feedback}</p>`;
-            }
+            renderAnalysisSections(data);
         }
 
         function showError(message) {
@@ -403,11 +534,11 @@
 
         function retakeTest() {
             sessionStorage.removeItem('test_result_data');
-            window.location.href = '/test/';
+            window.location.href = '{% url "test" %}';
         }
 
         function viewRecord() {
-            window.location.href = '/record/';
+            window.location.href = '{% url "record" %}';
         }
     </script>
 </body>

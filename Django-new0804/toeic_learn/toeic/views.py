@@ -169,31 +169,26 @@ def submit_test_answer(request):
         answer_time = timezone.now()
         question_details = []
 
-        # 初始化統計
+        # 初始化更細緻的統計
         total_questions = 0
         correct_total = 0
-        reading_total = reading_correct = 0
-        listen_total = listen_correct = 0
+        part_analysis = {} 
+        category_analysis = {} 
 
-        # 取得考卷
-        exam = session.exam
-        exam_type = exam.exam_type
-
-        # 儲存所有題目的文字稿
         transcripts = {}
+        part3_material_ids = set()
         
-        # 新增一個字典來儲存 Part 3 的題目ID和其對應的文字稿
-        part3_transcripts = {}
+        exam = session.exam
+        exam_questions_queryset = ExamQuestion.objects.filter(exam=exam).select_related('question')
+        question_map = {str(eq.question.question_id): eq.question for eq in exam_questions_queryset}
 
         for qid, selected_option in answers.items():
-            try:
-                question = Question.objects.get(question_id=qid)
-            except Question.DoesNotExist:
+            question = question_map.get(qid)
+            if not question:
                 continue
 
             is_correct = (selected_option.lower() == question.is_correct.lower())
 
-            # 儲存每一題作答
             answer_text = ''
             if selected_option.lower() == 'a':
                 answer_text = question.option_a_text
@@ -213,19 +208,26 @@ def submit_test_answer(request):
                 answer_time=answer_time,
             )
 
-            # 累加統計
+            # 累加總計
             total_questions += 1
             if is_correct:
                 correct_total += 1
 
-            if question.question_type == 'reading':
-                reading_total += 1
-                if is_correct:
-                    reading_correct += 1
-            elif question.question_type == 'listen':
-                listen_total += 1
-                if is_correct:
-                    listen_correct += 1
+            # 累加 Part 統計
+            part = f'part{question.part}' if question.part else 'unknown_part'
+            if part not in part_analysis:
+                part_analysis[part] = {'total': 0, 'correct': 0}
+            part_analysis[part]['total'] += 1
+            if is_correct:
+                part_analysis[part]['correct'] += 1
+
+            # 累加題目類別統計
+            category = question.question_category or 'unknown_category'
+            if category not in category_analysis:
+                category_analysis[category] = {'total': 0, 'correct': 0}
+            category_analysis[category]['total'] += 1
+            if is_correct:
+                category_analysis[category]['correct'] += 1
 
             # 詳解資訊
             options = [
@@ -243,19 +245,25 @@ def submit_test_answer(request):
                 'is_correct': is_correct,
                 'explanation': question.explanation,
                 'options': options,
-                'part': f'part{question.part}' if question.part else None,  # ✨ 新增這行：加入 part 資訊
+                'part': part,
+                'category': question.get_question_category_display() if question.question_category else '未分類',
             })
             
             # 儲存文字稿
-            # Part 2 和 Part 3 的文字稿都來自 material
-            # 你的 models.py 中 ListeningMaterial 應該是 material
             if question.material and question.material.transcript:
-                # 這裡儲存所有題目的文字稿，但前端會根據 part 屬性決定是否顯示
-                transcripts[str(qid)] = question.material.transcript
+                if part == 'part2':
+                    transcripts[str(qid)] = question.material.transcript
+                elif part == 'part3' and question.material.material_id not in part3_material_ids:
+                    transcripts[str(qid)] = question.material.transcript
+                    part3_material_ids.add(question.material.material_id)
 
-        # ... (分數計算和儲存 ExamResult 的部分保持不變)
         def calc_score(correct, total):
             return round((correct / total * 100), 2) if total else 0.0
+
+        reading_total = sum(p['total'] for part, p in part_analysis.items() if part in ['part5', 'part6', 'part7'])
+        reading_correct = sum(p['correct'] for part, p in part_analysis.items() if part in ['part5', 'part6', 'part7'])
+        listen_total = sum(p['total'] for part, p in part_analysis.items() if part in ['part2', 'part3'])
+        listen_correct = sum(p['correct'] for part, p in part_analysis.items() if part in ['part2', 'part3'])
 
         reading_score = calc_score(reading_correct, reading_total)
         listen_score = calc_score(listen_correct, listen_total)
@@ -280,38 +288,8 @@ def submit_test_answer(request):
         session.end_time = timezone.now()
         session.save()
 
-        # 判斷測驗類型
-        test_type = '閱讀測驗'
-        if exam_type == 'listen':
-            test_type = '聽力測驗'
-        elif exam_type == 'mixed':
-            test_type = '綜合測驗'
+        test_type = exam.get_exam_type_display()
             
-        # 由於 Part 3 的文字稿是多題共用，這裡我們再處理一次
-        # 確保只有 Part 3 的第一題會將文字稿傳遞給前端，以利前端判斷
-        final_transcripts = {}
-        part3_material_ids = set()
-
-        # 重新遍歷 question_details，將 Part 2 的文字稿直接加入，Part 3 則只加一次
-        for question in question_details:
-            qid = question['question_id']
-            part = question.get('part')
-            
-            # 如果是 Part 2，直接加入
-            if part == 'part2':
-                if qid in transcripts:
-                    final_transcripts[qid] = transcripts[qid]
-            
-            # 如果是 Part 3，且該 material_id 尚未處理過，才加入
-            elif part == 'part3':
-                try:
-                    q = Question.objects.get(question_id=qid)
-                    if q.material and q.material.material_id not in part3_material_ids:
-                        final_transcripts[qid] = q.material.transcript
-                        part3_material_ids.add(q.material.material_id)
-                except Question.DoesNotExist:
-                    continue
-
         response_data = {
             'success': True,
             'data': {
@@ -323,10 +301,11 @@ def submit_test_answer(request):
                 'listen_score': listen_score,
                 'question_details': question_details,
                 'test_type': test_type,
-                'transcripts': final_transcripts,  # ✨ 這裡回傳的 transcripts 是處理過的
+                'transcripts': transcripts,
+                'part_analysis': part_analysis,
+                'category_analysis': category_analysis,
             }
         }
-
         return JsonResponse(response_data)
 
     except Exception as e:
@@ -428,7 +407,7 @@ def part2(request):
     session = ExamSession.objects.create(
         exam=exam,
         user=user,
-        time_limit_enabled=False,
+        time_limit_enabled=True,
         start_time=timezone.now(),
         end_time=timezone.now(),
         status='in_progress',
@@ -504,7 +483,7 @@ def part3(request):
     session = ExamSession.objects.create(
         exam=exam,
         user=user,
-        time_limit_enabled=False,
+        time_limit_enabled=True,
         start_time=timezone.now(),
         end_time=timezone.now(),
         status='in_progress',
@@ -553,7 +532,7 @@ def part5(request):
     session = ExamSession.objects.create(
         exam=exam,
         user=user,
-        time_limit_enabled=False,
+        time_limit_enabled=True,
         start_time=timezone.now(),
         end_time=timezone.now(),
         status='in_progress',
@@ -614,7 +593,7 @@ def part6(request):
     session = ExamSession.objects.create(
         exam=exam,
         user=user,
-        time_limit_enabled=False,
+        time_limit_enabled=True,
         start_time=timezone.now(),
         end_time=timezone.now(),
         status='in_progress',
@@ -680,7 +659,7 @@ def part7(request):
     session = ExamSession.objects.create(
         exam=exam,
         user=user,
-        time_limit_enabled=False,
+        time_limit_enabled=True,
         start_time=timezone.now(),
         end_time=timezone.now(),
         status='in_progress',
@@ -766,13 +745,9 @@ def record(request):
         .select_related('session__exam')
     )
 
-    # 設定每頁顯示的筆數 (可以根據需求修改)
-    items_per_page = 15  # 或者 items_per_page = 20
-
-    # 建立 Paginator 物件
+    # 設定每頁顯示的筆數
+    items_per_page = 15
     paginator = Paginator(exam_results, items_per_page)
-
-    # 取得目前頁碼
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -794,38 +769,64 @@ def record(request):
 
     # 總學習時數
     total_answers = UserAnswer.objects.filter(session__user=user).count()
-    study_hours = round(total_answers / 60, 1)  # 1題1分鐘，60題=1小時
+    study_hours = round(total_answers / 60, 1)
+
+    # --- 新增：按 Part 分析作答情況 ---
+    part_performance = {}
+    part_numbers = [2, 3, 5, 6, 7] # 你們的測驗Part
+    
+    for part in part_numbers:
+        part_answers = UserAnswer.objects.filter(
+            session__user=user,
+            question__part=part
+        )
+        total_in_part = part_answers.count()
+        correct_in_part = part_answers.filter(is_correct=True).count()
+        percentage_in_part = int((correct_in_part / total_in_part) * 100) if total_in_part else 0
+        
+        # 顯示名稱可以從模型取得，但這裡我們先用固定字串
+        part_display_name = f'Part {part}'
+        if part in [2, 3]:
+            part_display_name += ' (聽力)'
+        elif part in [5, 6, 7]:
+            part_display_name += ' (閱讀)'
+
+        if total_in_part > 0: # 只顯示有作答紀錄的 Part
+            part_performance[part] = {
+                'display_name': part_display_name,
+                'total': total_in_part,
+                'correct': correct_in_part,
+                'percentage': percentage_in_part,
+            }
+    # --- Part 分析新增結束 ---
+
 
     # --- 新增：按題目類別分析作答情況 ---
     category_performance = {}
-    # 獲取 Question 模型中定義的題目類別選項，用於顯示名稱
     category_choices_dict = dict(QUESTION_CATEGORY_CHOICES)
 
-    # 遍歷所有題目類別
     for category_key, category_display_name in QUESTION_CATEGORY_CHOICES:
-        # 篩選出屬於當前類別的使用者作答
-        # 注意：這裡的篩選是針對所有 question_type 的，因為 category 是 question 的屬性
         category_answers = UserAnswer.objects.filter(
             session__user=user,
             question__question_category=category_key
         )
-
         total_in_category = category_answers.count()
         correct_in_category = category_answers.filter(is_correct=True).count()
-
         percentage_in_category = int((correct_in_category / total_in_category) * 100) if total_in_category else 0
-
-        category_performance[category_key] = {
-            'display_name': category_display_name,
-            'total': total_in_category,
-            'correct': correct_in_category,
-            'percentage': percentage_in_category,
-        }
-    # --- 新增結束 ---
+        
+        # 只有在有作答紀錄時才加入字典
+        if total_in_category > 0:
+            category_performance[category_key] = {
+                'display_name': category_display_name,
+                'total': total_in_category,
+                'correct': correct_in_category,
+                'percentage': percentage_in_category,
+            }
+    # --- 類別分析新增結束 ---
 
     context = {
         'user': user,
-        'page_obj': page_obj,  # 使用 page_obj 傳遞分頁後的 ExamResult 物件
+        'page_obj': page_obj,
         'reading_progress': reading_progress,
         'listening_progress': listening_progress,
         'study_hours': study_hours,
@@ -834,15 +835,15 @@ def record(request):
         'listening_total': listening_total,
         'listening_correct': listening_correct,
         'category_performance': category_performance,
+        'part_performance': part_performance, # <-- 將 Part 分析數據傳遞到模板
         'learning_suggestions': get_learning_suggestions(category_performance),
-
     }
     return render(request, 'record.html', context)
 
 def get_learning_suggestions(category_performance):
     suggestions = []
     for key, data in category_performance.items():
-        if data['percentage'] < 60:  # 錯太多了！
+        if data['percentage'] < 60:
             suggestions.append(f"你在「{data['display_name']}」類別正確率較低，建議多加強相關文法或單字練習。")
         elif data['percentage'] < 80:
             suggestions.append(f"你在「{data['display_name']}」類別有待提升，可複習該類題型的解題技巧。")

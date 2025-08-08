@@ -9,12 +9,12 @@
     <link rel="stylesheet" href="{% static 'css/record.css' %}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
+        /* 保持你的原始 CSS 樣式 */
         * { box-sizing: border-box; }
         body { overflow-x: hidden; }
         img { max-width: 100%; height: auto; }
         iframe { max-width: 100%; width: 100%; }
-
-        /* 統一表格樣式 */
+        
         .table-standard {
             width: 100%;
             border-collapse: collapse;
@@ -38,83 +38,116 @@
             background-color: #f1f1f1;
         }
 
-        /* 額外容器樣式 */
-        .category-analysis-section {
+        .category-analysis-section, .part-analysis-section, .test-history, .personalized-advice-section {
             background-color: #fff;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-        .category-analysis-section h3 {
+        .category-analysis-section h3, .part-analysis-section h3, .test-history h3, .personalized-advice-section h3 {
             color: #333;
             margin-bottom: 15px;
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
+            display: flex;
+            align-items: center;
         }
-
-        .test-history {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .personalized-advice-section {
-            background-color: #fff8e1;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+        .category-analysis-section h3 i, .part-analysis-section h3 i, .test-history h3 i, .personalized-advice-section h3 i {
+            margin-right: 10px;
         }
         .personalized-advice-section h3 {
             color: #e65100;
-            margin-bottom: 15px;
             border-bottom: 2px solid #ffe0b2;
-            padding-bottom: 10px;
+        }
+        .personalized-advice-section h3 i {
+            color: #fbc02d;
         }
         .personalized-advice-section ul {
             padding-left: 20px;
+            margin: 0;
+            list-style: none; /* 移除預設的項目符號 */
         }
         .personalized-advice-section li {
             margin-bottom: 10px;
             font-size: 16px;
+            display: flex;
+            align-items: flex-start;
         }
-        .personalized-advice-section i {
+        .personalized-advice-section li i {
             color: #fbc02d;
-            margin-right: 6px;
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        .advice-text {
+            line-height: 1.6;
         }
 
-        /* 分頁樣式 */
+        .analysis-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .analysis-item {
+            flex: 1 1 calc(50% - 15px); /* 讓項目在寬螢幕時一行顯示2個 */
+            min-width: 280px; /* 最小寬度，防止在小螢幕下太擠 */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .analysis-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .analysis-item-content {
+            display: flex;
+            flex-direction: column;
+        }
+        .analysis-item-content .title {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #007bff;
+        }
+        .analysis-item-content .details {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .analysis-item .percentage {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 1.2em;
+        }
         .pagination {
             display: flex;
             justify-content: center;
             margin-top: 20px;
         }
-
         .pagination a {
-            color: #007BFF; /* 主要藍色 */
+            color: #007BFF;
             padding: 8px 16px;
             text-decoration: none;
             transition: background-color .3s, color .3s, border-color .3s;
-            border: 1px solid #007BFF; /* 主要藍色 */
+            border: 1px solid #007BFF;
             margin: 0 4px;
-            border-radius: 4px; /* 圓角 */
-            font-weight: bold; /* 加粗 */
+            border-radius: 4px;
+            font-weight: bold;
         }
-
         .pagination a.active {
-            background-color: #007BFF; /* 主要藍色 */
+            background-color: #007BFF;
             color: white;
-            border: 1px solid #007BFF; /* 主要藍色 */
+            border: 1px solid #007BFF;
         }
-
         .pagination a:hover:not(.active) {
-            background-color: #f0f8ff; /* 淺藍色背景 */
-            color: #0056b3; /* 深藍色文字 */
-            border-color: #0056b3; /* 深藍色邊框 */
+            background-color: #f0f8ff;
+            color: #0056b3;
+            border-color: #0056b3;
         }
-
         .pagination .current {
             padding: 8px 16px;
             margin: 0 4px;
@@ -139,7 +172,7 @@
         </div>
 
         <div class="progress-section">
-            <h3>作答情況（正確數/總作答題數）</h3> 
+            <h3><i class="fas fa-chart-line"></i>作答情況（正確數/總作答題數）</h3> 
             <p>
                 閱讀：{{ reading_correct }} / {{ reading_total }} （正確率：{{ reading_progress }}%）<br>
             </p>
@@ -154,48 +187,59 @@
             </div>
         </div>
 
-        <div class="category-analysis-section">
-            <h3>題目類別作答分析</h3>
-            {% if category_performance %}
-            <table class="table-standard">
-                <thead>
-                    <tr>
-                        <th>類別</th>
-                        <th>答對數</th>
-                        <th>總作答數</th>
-                        <th>正確率</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for key, data in category_performance.items %}
-                    <tr>
-                        <td>{{ data.display_name }}</td>
-                        <td>{{ data.correct }}</td>
-                        <td>{{ data.total }}</td>
-                        <td>{{ data.percentage }}%</td>
-                    </tr>
+        <div class="part-analysis-section">
+            <h3><i class="fas fa-list-ol"></i> Part 作答分析</h3>
+            {% if part_performance %}
+                <div class="analysis-list">
+                    {% for part, data in part_performance.items %}
+                        <div class="analysis-item">
+                            <div class="analysis-item-content">
+                                <span class="title">{{ data.display_name }}</span>
+                                <span class="details">答對 {{ data.correct }} 題 / 共 {{ data.total }} 題</span>
+                            </div>
+                            <span class="percentage">{{ data.percentage }}%</span>
+                        </div>
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
             {% else %}
-            <p>尚無題目類別作答紀錄。</p>
+                <p>尚無 Part 作答紀錄。</p>
+            {% endif %}
+        </div>
+
+        <div class="category-analysis-section">
+            <h3><i class="fas fa-tags"></i> 題目類別作答分析</h3>
+            {% if category_performance %}
+                <div class="analysis-list">
+                    {% for key, data in category_performance.items %}
+                        <div class="analysis-item">
+                            <div class="analysis-item-content">
+                                <span class="title">{{ data.display_name }}</span>
+                                <span class="details">答對 {{ data.correct }} 題 / 共 {{ data.total }} 題</span>
+                            </div>
+                            <span class="percentage">{{ data.percentage }}%</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>尚無題目類別作答紀錄。</p>
             {% endif %}
         </div>
 
         <div class="personalized-advice-section">
-            <h3>個性化學習建議</h3>
+            <h3><i class="fas fa-lightbulb"></i> 個性化學習建議</h3>
             {% if learning_suggestions %}
                 <ul>
                     {% for suggestion in learning_suggestions %}
-                        <li><i class="fas fa-lightbulb"></i> {{ suggestion }}</li>
+                        <li><i class="fas fa-lightbulb"></i> <span class="advice-text">{{ suggestion }}</span></li>
                     {% endfor %}
                 </ul>
             {% else %}
                 <p>尚無建議，請先完成測驗以取得分析！</p>
             {% endif %}
-</div>
+        </div>
+
         <div class="test-history">
-            <h3>已完成測驗</h3>
+            <h3><i class="fas fa-history"></i> 已完成測驗</h3>
             <div id="exam-results-container">
                 <table class="table-standard">
                     <thead>
@@ -216,14 +260,14 @@
                         <tr>
                             <td colspan="3">尚無測驗紀錄</td>
                         </tr>
-                    {% endfor %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
 
             <div class="pagination">
                 {% if page_obj.has_previous %}
-                    <a href="?page=1" data-page="1">&laquo; 第一頁</a>
+                    <a href="?page=1" data-page="1">« 第一頁</a>
                     <a href="?page={{ page_obj.previous_page_number }}" data-page="{{ page_obj.previous_page_number }}">上一頁</a>
                 {% endif %}
 
@@ -233,7 +277,7 @@
 
                 {% if page_obj.has_next %}
                     <a href="?page={{ page_obj.next_page_number }}" data-page="{{ page_obj.next_page_number }}">下一頁</a>
-                    <a href="?page={{ page_obj.paginator.num_pages }}" data-page="{{ page_obj.paginator.num_pages }}">最後一頁 &raquo;</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}" data-page="{{ page_obj.paginator.num_pages }}">最後一頁 »</a>
                 {% endif %}
             </div>
         </div>
@@ -242,45 +286,17 @@
     <a href="{% url 'home' %}" id="backButton">回到首頁</a>
 
     <script>
-        // 取得所有分頁連結
-        const paginationLinks = document.querySelectorAll('.pagination a');
-        const examResultsContainer = document.getElementById('exam-results-container');
-
-        // 為每個分頁連結加入點擊事件監聽器
-        paginationLinks.forEach(link => {
-            link.addEventListener('click', function(event) {
-                // 阻止連結的預設行為 (避免跳到頁面頂端)
-                event.preventDefault();
-
-                // 取得要載入的頁碼
-                const pageNumber = this.dataset.page;
-
-                // 使用 AJAX 載入新的內容
-                fetch(`?page=${pageNumber}`)
-                    .then(response => response.text())
-                    .then(data => {
-                        // 將新的內容插入到 exam-results-container 中
-                        const newContent = new DOMParser().parseFromString(data, 'text/html').querySelector('#exam-results-container');
-                        examResultsContainer.innerHTML = newContent.innerHTML;
-
-                        // 更新分頁連結
-                        const newPagination = new DOMParser().parseFromString(data, 'text/html').querySelector('.pagination');
-                        document.querySelector('.pagination').innerHTML = newPagination.innerHTML;
-
-                        // 重新綁定事件監聽器
-                        bindPaginationEvents();
-                    });
-            });
-        });
-
         function bindPaginationEvents() {
             const paginationLinks = document.querySelectorAll('.pagination a');
+            const examResultsContainer = document.getElementById('exam-results-container');
+            const currentUrl = window.location.href.split('?')[0];
+
             paginationLinks.forEach(link => {
                 link.addEventListener('click', function(event) {
                     event.preventDefault();
                     const pageNumber = this.dataset.page;
 
-                    fetch(`?page=${pageNumber}`)
+                    fetch(`${currentUrl}?page=${pageNumber}`)
                         .then(response => response.text())
                         .then(data => {
                             const newContent = new DOMParser().parseFromString(data, 'text/html').querySelector('#exam-results-container');
@@ -290,12 +306,14 @@
                             document.querySelector('.pagination').innerHTML = newPagination.innerHTML;
 
                             bindPaginationEvents();
-                        });
+                        })
+                        .catch(error => console.error('Error fetching pagination data:', error));
                 });
             });
         }
+        
+        document.addEventListener('DOMContentLoaded', bindPaginationEvents);
     </script>
-
     <footer class="footer">
         <div class="footer-container">
             <div class="contact-us">
@@ -314,7 +332,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 TOEIC學習平台 版權所有</p>
+            <p>© 2025 TOEIC學習平台 版權所有</p>
         </div>
     </footer>
 </body>

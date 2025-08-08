@@ -196,16 +196,21 @@ class ExamSession(models.Model):
     def update_status(self):
         now = timezone.now()
 
-        # 如果已完成，就不用再判斷
-        if self.status in ['completed', 'abandoned']:
+        # 如果狀態已定（完成或放棄），則不處理
+        if self.status in ['completed', 'abandoned', 'timeout']:
             return
 
-        if self.time_limit_enabled and now > self.end_time:
-            self.status = 'timeout'
-        elif now < self.end_time:
-            self.status = 'in_progress'
+        # 檢查是否有時間限制
+        if self.time_limit_enabled:
+            # 有時間限制，但時間已過
+            if now > self.end_time:
+                self.status = 'timeout'
+            # 有時間限制，但時間未過
+            else:
+                self.status = 'in_progress'
         else:
-            self.status = 'abandoned'
+            # 沒有時間限制，狀態永遠為進行中，除非手動完成
+            self.status = 'in_progress'
 
         self.save()
 
