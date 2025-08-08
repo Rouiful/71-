@@ -30,11 +30,11 @@ class Command(BaseCommand):
             exam = Exam.objects.create(
                 title=exam_title,
                 description="自動產生的 Part 2 測驗",
-                exam_type='toeic',
+                exam_type='listen',
                 part=2,
-                duration_minutes=10,
+                duration_minutes=20,
                 total_questions=exam_questions.count(),
-                passing_score=70.0,
+                passing_score=60,
                 is_active=True,
             )
 

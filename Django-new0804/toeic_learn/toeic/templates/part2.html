@@ -2,13 +2,31 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TOEIC學習平台 - 應答問題</title>
     <link rel="stylesheet" href="{% static 'css/common.css' %}">
+    <link rel="stylesheet" href="{% static 'css/reading_test.css' %}">
     <link rel="stylesheet" href="{% static 'css/part2.css' %}">
-
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* 自定義樣式，讓選項更美觀 */
+        .quiz-options li {
+            display: inline-block; /* 讓選項水平排列 */
+            margin: 5px;
+        }
+        .quiz-options label {
+            display: inline-block;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #f9f9f9;
+        }
+        .quiz-options label.selected {
+            background-color: #e0e0e0;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -19,479 +37,244 @@
     </div>
 
     <div class="container">
-        <h1>Response to Questions</h1>
-        
-        {# 音頻播放與控制區域 #}
-        <div class="audio-player-box">
-            <p>請聆聽問題，然後從選項中選出最合適的回應。</p>
-            <div class="audio-controls">
-                <button class="play-audio-btn" onclick="playQuestionAudio()">播放問題</button>
-                <button class="stop-audio-btn" onclick="stopSpeech()">停止播放</button>
+        {% if error %}
+            <div class="error-message">
+                <h4><i class="fas fa-exclamation-triangle"></i> 錯誤</h4>
+                <p>{{ error }}</p>
+                <button onclick="location.reload()" class="nav-btn">重新載入</button>
             </div>
-            <p class="instruction">問題只會播放一次，請仔細聆聽。</p>
-        </div>
-        
-        {# 測驗題目與選項區域 #}
-        <div class="quiz-box">
-            <p id="question-number"></p> {# 顯示題號 #}
-            <p id="question"></p> {# 顯示題目文字提示 #}
-            <ul id="options" class="quiz-options"></ul> {# 顯示選項 #}
-        </div>
-        
-        {# 導航按鈕區域 #}
-        <div class="navigation-buttons">
-            <button id="prev-btn" class="nav-btn">
-                <i class="fas fa-arrow-left"></i> 上一題
-            </button>
-            <button id="next-btn" class="nav-btn">
-                下一題 <i class="fas fa-arrow-right"></i>
-            </button>
-            <button id="submit-btn" class="submit-btn" style="display: none;">
-                完成測驗 <i class="fas fa-check"></i>
-            </button>
-        </div>
+        {% elif questions_json %}
+            <h2 class="center-title">應答問題</h2>
+            <p>發佈日期: <span id="currentDate"></span></p>
 
-        <div class="result-display" style="display: none;">
-            <h2>您的測驗結果</h2>
-            <div class="score-summary">
-                <p>答對題目: <span id="correct-count">0</span> / <span id="total-questions">0</span></p>
+            <div class="passage-box">
+                <h3>對話音檔</h3>
+                <audio controls>
+                    <source src="{{ material.audio_url }}" type="audio/mpeg">
+                    您的瀏覽器不支援音訊播放。
+                </audio>
             </div>
-            <div class="progress-container">
-                <div class="progress-bar" id="score-progress-bar"></div>
+
+            <div id="question-counter">
+                <div>題目 <span id="current-question">1</span> / <span id="total-questions"></span></div>
             </div>
-            <div class="score-text">
-                <span id="score-percentage">0%</span>
+
+            <div id="question-container">
+                <div class="quiz-box">
+                    <p id="question">Loading question...</p>
+                    <ul id="options" class="quiz-options"></ul>
+                </div>
             </div>
-        </div>
+
+            <div class="navigation-buttons">
+                <button id="prev-btn" class="nav-btn" type="button">
+                    <i class="fas fa-chevron-left"></i> 上一題
+                </button>
+                <button id="next-btn" class="nav-btn" type="button">
+                    下一題 <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        {% else %}
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>載入題目中...</p>
+            </div>
+        {% endif %}
     </div>
 
     <a href="{% url 'test' %}" id="backButton">回到上一頁</a>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 應答問題特有的音檔和題目數據 (已縮減至4題)
-    const listeningDataPart2 = [
-        {
-            id: "q1",
-            audio: "What did you think of the presentation?",
-            question: "Q1:", // 保持 QX: 的格式
-            options: [
-                "A) I thought it was very informative.",
-                "B) He presented it last week.",
-                "C) Yes, I will attend.",
-                "D) The presentation will be postponed."
-            ],
-            correct: 0,
-            userAnswer: null
-        },
-        {
-            id: "q2",
-            audio: "Excuse me, could you tell me where the nearest post office is?",
-            question: "Q2:",
-            options: [
-                "A) No, I haven't mailed it yet.",
-                "B) It's around the corner, next to the bank.",
-                "C) I'm sorry, I don't post letters.",
-                "D) The office is closed now."
-            ],
-            correct: 1,
-            userAnswer: null
-        },
-        {
-            id: "q3",
-            audio: "Have you finished your report yet?",
-            question: "Q3:",
-            options: [
-                "A) Yes, it's already on your desk.",
-                "B) I'll report it soon.",
-                "C) No, I don't think so.",
-                "D) The report is due tomorrow."
-            ],
-            correct: 0,
-            userAnswer: null
-        },
-        {
-            id: "q4",
-            audio: "Could you please pass me the salt?",
-            question: "Q4:",
-            options: [
-                "A) No, thank you.",
-                "B) Here you go.",
-                "C) It's too salty.",
-                "D) I don't have any salt."
-            ],
-            correct: 1,
-            userAnswer: null
-        }
-    ];
-
-    let currentQuizIndex = 0; // 當前顯示的題目索引
-    let isReviewMode = false; // 新增一個狀態變數來追蹤是否在查看詳解模式
-
-    // 🏷️【文本朗讀功能】 - 確保只有這一個定義
-    let speech = new SpeechSynthesisUtterance();
-
-    // 獲取 DOM 元素
-    const questionNumberElement = document.getElementById("question-number"); // 這個元素將顯示 "題目 X / Y"
-    const questionElement = document.getElementById("question");           // 這個元素將顯示 "QZ:"
-    const optionsElement = document.getElementById("options"); // 請確保 ul.quiz-options 有 id="options"
-
-    // 獲取音頻播放器及其按鈕
-    const audioPlayerBox = document.querySelector('.audio-player-box');
-    const playAudioBtn = document.getElementById("play-audio-btn");
-    const stopAudioBtn = document.getElementById("stop-audio-btn");
-
-    // 獲取導航按鈕
-    const prevBtn = document.getElementById("prev-btn");
-    const nextBtn = document.getElementById("next-btn");
-    const submitBtn = document.getElementById("submit-btn");
-
-    // 獲取結果顯示相關元素
-    const resultDisplay = document.querySelector('.result-display');
-    const correctCountSpan = document.getElementById('correct-count');
-    const totalQuestionsSpan = document.getElementById('total-questions');
-    const scoreProgressBar = document.getElementById('score-progress-bar');
-    const scorePercentageSpan = document.getElementById('score-percentage');
-
-    // **新增：獲取或創建「返回」按鈕的參考**
-    let endReviewBtn = document.getElementById('end-review-btn');
-    if (!endReviewBtn) {
-        endReviewBtn = document.createElement('button');
-        endReviewBtn.innerText = '返回'; // **將文字修改為「返回」**
-        endReviewBtn.id = 'end-review-btn';
-        endReviewBtn.classList.add('nav-btn', 'mt-4');
-        // 將它添加到導航按鈕的容器，確保它存在於 DOM 中以便控制
-        // 假設 .navigation-buttons 是你的導航按鈕容器
-        const navButtonsContainer = document.querySelector('.navigation-buttons');
-        if (navButtonsContainer) {
-            navButtonsContainer.appendChild(endReviewBtn);
-        } else {
-            document.body.appendChild(endReviewBtn); // 作為備用，如果找不到容器就加到 body
-        }
-        endReviewBtn.style.display = 'none'; // 預設隱藏
+document.addEventListener('DOMContentLoaded', function () {
+    const sessionId = "{{ session_id }}";
+    const questionsData = JSON.parse('{{ questions_json|escapejs }}');
+    const currentDateEl = document.getElementById("currentDate");
+    if (currentDateEl) {
+        currentDateEl.textContent = new Date().toISOString().split('T')[0];
     }
 
-    // 播放當前題目的音頻
-    function playQuestionAudio() {
-        if (currentQuizIndex < listeningDataPart2.length) {
-            stopSpeech(); // 停止任何正在播放的語音
-            speech.text = listeningDataPart2[currentQuizIndex].audio; // 使用題目音頻
-            speech.lang = "en-US"; // 設置語言為英文
-            speech.rate = 0.9; // 設置語速
-            speech.pitch = 1; // 設置音高
+    let currentQuestionIndex = 0;
+    let userAnswers = {}; // 用於記錄作答，頁面刷新會重置
 
-            // 檢查瀏覽器是否支援語音合成
-            if (window.speechSynthesis) {
-                window.speechSynthesis.speak(speech);
-                console.log("Playing: " + listeningDataPart2[currentQuizIndex].audio);
-            } else {
-                console.warn("您的瀏覽器不支持語音合成。");
-            }
-        }
-    }
+    document.getElementById('total-questions').textContent = questionsData.length;
 
-    // 🏷️【停止朗讀功能】- 統一為這一個
-    function stopSpeech() {
-        if (window.speechSynthesis && window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel(); // 停止所有語音合成
-        }
-    }
+    function displayCurrentQuestion() {
+        const question = questionsData[currentQuestionIndex];
+        const questionEl = document.getElementById('question');
+        const optionsContainer = document.getElementById('options');
+        const audioPlayer = document.querySelector('.passage-box audio'); // 獲取 audio 元素
 
-    // 載入並顯示指定索引的題目
-    function loadQuestion(index) {
-        stopSpeech(); // 切換題目時停止當前音頻
-        currentQuizIndex = index; // 更新當前題目索引
+        // 只顯示題號，不顯示題目文字
+        questionEl.textContent = `Q${currentQuestionIndex + 1}`;
+        optionsContainer.innerHTML = '';
 
-        // 總是隱藏結果顯示區域
-        if (resultDisplay) {
-            resultDisplay.style.display = 'none';
+        // 更新音檔 URL
+        if (question.audio_url) {
+            audioPlayer.innerHTML = `<source src="${question.audio_url}" type="audio/mpeg">您的瀏覽器不支援音訊播放。`;
+            audioPlayer.load(); // 重新載入音訊
         }
 
-        // 顯示題目相關元素
-        if (questionNumberElement) questionNumberElement.style.display = 'block';
-        if (questionElement) questionElement.style.display = 'block';
-        if (optionsElement) optionsElement.style.display = 'block';
+        ['a', 'b', 'c'].forEach(optionKey => { // 只顯示 a b c d 選項
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <label>
+                    <input type="radio" name="answer" value="${optionKey}" style="display:none;">
+                    <span>${optionKey.toUpperCase()}</span> <!-- 只顯示選項字母 -->
+                </label>
+            `;
 
-        if (audioPlayerBox) {
-            audioPlayerBox.style.display = 'block';
-            if (playAudioBtn) playAudioBtn.style.pointerEvents = 'auto';
-            if (stopAudioBtn) stopAudioBtn.style.pointerEvents = 'auto';
-        }
-
-        if (currentQuizIndex < listeningDataPart2.length && currentQuizIndex >= 0) {
-            const quizData = listeningDataPart2[currentQuizIndex];
-
-            // 將題目進度顯示在 questionNumberElement
-            if (questionNumberElement) {
-                questionNumberElement.innerText = `題目 ${currentQuizIndex + 1} / ${listeningDataPart2.length}`;
+            // 如果之前選過，直接標記選中
+            const questionId = question.question_id;
+            if (userAnswers[questionId] === optionKey) {
+                li.classList.add('selected');
+                li.querySelector('input[type="radio"]').checked = true;
             }
 
-            // 將實際問題文字顯示在 questionElement
-            if (questionElement) {
-                questionElement.innerText = quizData.question;
-            }
-
-            optionsElement.innerHTML = ""; // 清空舊選項
-
-            quizData.options.forEach((option, optionIndex) => {
-                const li = document.createElement("li");
-                li.innerText = option;
-                li.classList.add("option-item");
-                li.dataset.optionIndex = optionIndex; // 用於快速查找選項
-
-                if (isReviewMode) { // 在查看詳解模式下
-                    li.style.pointerEvents = 'none'; // 禁用所有選項的點擊
-
-                    if (optionIndex === quizData.userAnswer) {
-                        li.classList.add("selected"); // 用戶選擇的答案
-                    }
-                    if (optionIndex === quizData.correct) {
-                        li.classList.add("correct"); // 正確答案
-                    } else if (optionIndex === quizData.userAnswer && optionIndex !== quizData.correct) {
-                        li.classList.add("incorrect"); // 用戶答案錯誤
-                    }
-                } else { // 在作答模式下
-                    if (quizData.userAnswer !== null && optionIndex === quizData.userAnswer) {
-                        li.classList.add("selected");
-                    }
-                    // 只有在作答模式下才添加點擊事件
-                    li.addEventListener("click", function () {
-                        // 移除所有選項的 'selected' class
-                        optionsElement.querySelectorAll('.option-item').forEach(item => {
-                            item.classList.remove('selected');
-                        });
-
-                        // 為當前選擇的選項添加 'selected' class
-                        li.classList.add("selected");
-                        quizData.userAnswer = optionIndex; // 儲存用戶答案
-                    });
-                }
-                optionsElement.appendChild(li);
+            li.addEventListener('click', () => {
+                // 移除其他選項選中狀態
+                document.querySelectorAll('#options li').forEach(el => el.classList.remove('selected'));
+                // 標記自己選中
+                li.classList.add('selected');
+                const radio = li.querySelector('input[type="radio"]');
+                radio.checked = true;
+                saveCurrentAnswer();
             });
-        } else {
-            // 這個分支通常不應在正常測驗流程中被訪問
-            if (questionNumberElement) questionNumberElement.innerText = "";
-            if (questionElement) questionElement.innerText = "沒有題目可顯示或發生錯誤。";
-            if (optionsElement) optionsElement.innerHTML = "";
-            if (audioPlayerBox) {
-                audioPlayerBox.style.display = 'none';
-            }
-        }
-        updateNavigationButtons(); // 載入題目後更新按鈕狀態
-    }
 
-    // 更新導航按鈕的啟用/禁用狀態和顯示/隱藏
-    function updateNavigationButtons() {
-        let reviewAnswersBtn = document.getElementById('review-answers-btn'); 
-
-        if (prevBtn) {
-            prevBtn.disabled = currentQuizIndex === 0;
-            prevBtn.style.visibility = (currentQuizIndex === 0) ? 'hidden' : 'visible';
-            prevBtn.style.display = 'block'; // 確保按鈕可見
-        }
-
-        if (nextBtn) {
-            nextBtn.style.display = 'block'; // 確保按鈕可見
-        }
-        if (submitBtn) {
-            submitBtn.style.display = 'none'; // 預設隱藏提交按鈕
-        }
-
-        // 確保在任何時候，如果不在查看正解模式，這些按鈕都隱藏
-        if (reviewAnswersBtn) reviewAnswersBtn.style.display = 'none'; 
-        if (endReviewBtn) endReviewBtn.style.display = 'none'; // **預設隱藏「返回」按鈕**
-
-        if (isReviewMode) { // 在查看詳解模式下
-            if (currentQuizIndex === listeningDataPart2.length - 1) {
-                // 如果是最後一題，隱藏下一題按鈕
-                if (nextBtn) nextBtn.style.display = 'none';
-            }
-            // 提交按鈕在查看詳解模式下始終隱藏
-            if (submitBtn) submitBtn.style.display = 'none';
-            // **只有在查看正解模式下才顯示「返回」按鈕**
-            if (endReviewBtn) endReviewBtn.style.display = 'block'; 
-
-        } else { // 在作答模式下
-            if (currentQuizIndex === listeningDataPart2.length - 1) {
-                // 最後一題：隱藏下一題，顯示完成作答
-                if (nextBtn) nextBtn.style.display = 'none';
-                if (submitBtn) submitBtn.style.display = 'block';
-            } else {
-                // 非最後一題：顯示下一題，隱藏完成作答
-                if (nextBtn) nextBtn.style.display = 'block';
-                if (submitBtn) submitBtn.style.display = 'none';
-            }
-        }
-    }
-
-    // 顯示下一題
-    function showNextQuestion() {
-        if (currentQuizIndex < listeningDataPart2.length - 1) {
-            loadQuestion(currentQuizIndex + 1);
-        } else if (isReviewMode && currentQuizIndex === listeningDataPart2.length - 1) {
-            // 在查看詳解模式的最後一題點擊「下一題」時，回到結果頁面
-            submitResults(); 
-        } else {
-             console.log("已經是最後一題。");
-        }
-    }
-
-    // 顯示上一題
-    function showPreviousQuestion() {
-        if (currentQuizIndex > 0) {
-            loadQuestion(currentQuizIndex - 1);
-        }
-    }
-
-    // 計算總分
-    function calculateScore() {
-        let score = 0;
-        listeningDataPart2.forEach(q => {
-            if (q.userAnswer !== null && q.userAnswer === q.correct) {
-                score++;
-            }
+            optionsContainer.appendChild(li);
         });
-        return score;
+
+        updateNavigationButtons();
     }
 
-    // 處理完成作答並顯示得分 (使用進度條方式)
-    function submitResults() {
-        stopSpeech(); // 停止所有語音播放
+    function saveCurrentAnswer() {
+        const selectedLi = document.querySelector('#options li.selected');
+        if (selectedLi && questionsData[currentQuestionIndex]) {
+            const radio = selectedLi.querySelector('input[type="radio"]');
+            if (radio) {
+                const questionId = questionsData[currentQuestionIndex].question_id;
+                userAnswers[questionId] = radio.value;
+            }
+        }
+    }
 
-        // 只有在非查看詳解模式下才檢查是否全部作答
-        if (!isReviewMode) { 
-            const allAnswered = listeningDataPart2.every(q => q.userAnswer !== null);
-            if (!allAnswered) {
-                alert('請回答所有問題後再提交！');
+    function nextQuestion(event) {
+        if (event) event.preventDefault();
+        if (currentQuestionIndex < questionsData.length - 1) {
+            saveCurrentAnswer();
+            currentQuestionIndex++;
+            displayCurrentQuestion();
+            updateCounter();
+        }
+    }
+
+    function previousQuestion(event) {
+        if (event) event.preventDefault();
+        if (currentQuestionIndex > 0) {
+            saveCurrentAnswer();
+            currentQuestionIndex--;
+            displayCurrentQuestion();
+            updateCounter();
+        }
+    }
+
+    document.getElementById('prev-btn').addEventListener('click', previousQuestion);
+    document.getElementById('next-btn').addEventListener('click', nextQuestion);
+
+    function updateNavigationButtons() {
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+
+    prevBtn.style.visibility = currentQuestionIndex === 0 ? 'hidden' : 'visible';
+
+    if (currentQuestionIndex === questionsData.length - 1) {
+        nextBtn.innerHTML = '<i class="fas fa-check"></i> 完成測驗';
+        nextBtn.className = 'submit-btn';
+
+        // 先移除之前綁的事件，避免多次觸發
+        nextBtn.replaceWith(nextBtn.cloneNode(true));
+        const newNextBtn = document.getElementById('next-btn');
+        newNextBtn.onclick = submitQuiz;
+
+    } else {
+        nextBtn.innerHTML = '下一題 <i class="fas fa-chevron-right"></i>';
+        nextBtn.className = 'nav-btn';
+
+        nextBtn.replaceWith(nextBtn.cloneNode(true));
+        const newNextBtn = document.getElementById('next-btn');
+        newNextBtn.onclick = nextQuestion;
+    }
+}
+
+    function updateCounter() {
+        document.getElementById('current-question').textContent = currentQuestionIndex + 1;
+    }
+
+    function submitQuiz(event) {
+        if (event) event.preventDefault();
+        saveCurrentAnswer();
+
+        const unanswered = questionsData.filter(q => !userAnswers[q.question_id]).map((q, i) => i + 1);
+        if (unanswered.length > 0) {
+            if (!confirm(`還有 ${unanswered.length} 題未作答（題號：${unanswered.join(', ')}），確定要提交嗎？`)) {
                 return;
             }
         }
 
-        const finalScore = calculateScore();
-        const totalQuestions = listeningDataPart2.length;
-        const percentage = (totalQuestions > 0) ? (finalScore / totalQuestions) * 100 : 0;
+        const btn = document.getElementById('next-btn');
+        btn.disabled = true;
+        btn.textContent = '正在提交...';
 
-        // 隱藏測驗區域的所有元素
-        if (questionNumberElement) questionNumberElement.style.display = 'none';
-        if (questionElement) questionElement.style.display = 'none';
-        if (optionsElement) optionsElement.style.display = 'none';
-        if (audioPlayerBox) {
-            audioPlayerBox.style.display = 'none';
+        const examType = "{{ exam.exam_type }}"; // 假設 exam 物件已經傳遞到前端
+
+        // 根據 exam_type 的值，設定 test_type 的值
+        let testType = '閱讀測驗';
+        if (examType === 'listen') {
+            testType = '聽力測驗';
+        } else if (examType === 'mixed') {
+            testType = '綜合測驗';
         }
 
-        // 隱藏所有導航按鈕
-        if (prevBtn) prevBtn.style.display = 'none';
-        if (nextBtn) nextBtn.style.display = 'none';
-        if (submitBtn) submitBtn.style.display = 'none';
-        if (endReviewBtn) endReviewBtn.style.display = 'none'; // **在顯示成績時，確保「返回」按鈕隱藏**
-
-        // 顯示結果區域
-        if (resultDisplay) {
-            resultDisplay.style.display = 'block';
-            correctCountSpan.innerText = finalScore;
-            totalQuestionsSpan.innerText = totalQuestions;
-            scoreProgressBar.style.width = `${percentage}%`;
-            scorePercentageSpan.innerText = `${percentage.toFixed(0)}%`; // 顯示百分比，保留整數
-
-            // 根據分數調整百分比文字顏色和進度條顏色
-            if (percentage >= 80) {
-                scorePercentageSpan.className = 'score-text excellent';
-                scoreProgressBar.style.background = 'linear-gradient(90deg, #28a745, #5cb85c)'; // 綠色
-            } else if (percentage >= 60) {
-                scorePercentageSpan.className = 'score-text good';
-                scoreProgressBar.style.background = 'linear-gradient(90deg, #ffc107, #ffdb58)'; // 黃色
+        fetch('/api/submit_test_answer/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                session_id: sessionId,
+                answers: userAnswers,
+                test_type: testType,
+                total_questions: questionsData.length
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                sessionStorage.setItem('test_result_data', JSON.stringify(data.data));
+                window.location.href ='/test_result/'
             } else {
-                scorePercentageSpan.className = 'score-text poor';
-                scoreProgressBar.style.background = 'linear-gradient(90deg, #dc3545, #fd7e14)'; // 紅色到橙色
+                alert('提交失敗：' + (data.error || '未知錯誤'));
+                btn.disabled = false;
+                btn.textContent = '完成測驗';
             }
-
-            // 創建並添加「查看正解」按鈕
-            let reviewAnswersBtn = document.getElementById('review-answers-btn');
-            if (!reviewAnswersBtn) { // 避免重複創建
-                reviewAnswersBtn = document.createElement('button');
-                reviewAnswersBtn.innerText = '查看正解'; 
-                reviewAnswersBtn.id = 'review-answers-btn';
-                reviewAnswersBtn.classList.add('nav-btn', 'mt-4'); 
-                resultDisplay.appendChild(reviewAnswersBtn);
-            }
-            reviewAnswersBtn.style.display = 'block'; // 確保按鈕可見
-
-            // 移除舊的事件監聽，再重新綁定 (防止重複觸發)
-            reviewAnswersBtn.replaceWith(reviewAnswersBtn.cloneNode(true));
-            reviewAnswersBtn = document.getElementById('review-answers-btn');
-
-            reviewAnswersBtn.onclick = function() {
-                isReviewMode = true; // 設定為查看詳解模式
-                loadQuestion(0); // 重新載入第一題，現在會顯示答案對錯
-
-                // 隱藏得分結果區域
-                if (resultDisplay) resultDisplay.style.display = 'none';
-
-                // 顯示前後按鈕，隱藏提交按鈕和查看正解按鈕
-                if (prevBtn) prevBtn.style.display = 'block';
-                if (nextBtn) nextBtn.style.display = 'block';
-                if (submitBtn) submitBtn.style.display = 'none';
-                reviewAnswersBtn.style.display = 'none'; // 隱藏自身
-
-                // 「返回」按鈕會在這裡根據 isReviewMode 狀態顯示
-                updateNavigationButtons(); // 更新按鈕狀態
-            };
-        }
-    }
-
-    // 事件監聽器綁定
-    if (playAudioBtn) {
-        playAudioBtn.addEventListener('click', playQuestionAudio);
-    }
-    if (stopAudioBtn) {
-        stopAudioBtn.addEventListener('click', stopSpeech);
-    }
-    if (prevBtn) {
-        prevBtn.addEventListener('click', showPreviousQuestion);
-    }
-    if (nextBtn) {
-        nextBtn.addEventListener('click', showNextQuestion);
-    }
-    if (submitBtn) {
-        submitBtn.addEventListener('click', submitResults);
-    }
-    // 為「返回」按鈕綁定事件
-    if (endReviewBtn) {
-        endReviewBtn.addEventListener('click', function() {
-            isReviewMode = false; // 結束查看詳解模式
-            submitResults(); // 重新回到結果頁面
+        })
+        .catch(() => {
+            alert('提交過程中發生錯誤，請稍後重試');
+            btn.disabled = false;
+            btn.textContent = '完成測驗';
         });
     }
 
-    // 頁面載入時初始化
-    window.addEventListener("load", function() {
-        if (listeningDataPart2.length > 0) {
-            loadQuestion(0); // 載入第一道題目
-        } else {
-            // 顯示"沒有題目"訊息時，更新 questionElement
-            if (questionNumberElement) questionNumberElement.innerText = "";
-            if (questionElement) questionElement.innerText = "沒有題目可顯示。"; // 顯示訊息
-            if (optionsElement) optionsElement.innerHTML = ""; // 清空選項
-            if (audioPlayerBox) {
-                audioPlayerBox.style.display = 'none'; // 如果沒有題目，隱藏音頻播放器
-            }
-            // 隱藏所有導航按鈕和結果顯示區
-            if (prevBtn) prevBtn.style.display = 'none';
-            if (nextBtn) nextBtn.style.display = 'none';
-            if (submitBtn) submitBtn.style.display = 'none';
-            if (resultDisplay) resultDisplay.style.display = 'none';
-            // 同時隱藏「返回」按鈕
-            if (endReviewBtn) endReviewBtn.style.display = 'none';
-        }
-    });
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        return parts.length === 2 ? parts.pop().split(';').shift() : '';
+    }
 
-    // 頁面可見性變化時停止朗讀
-    document.addEventListener("visibilitychange", function() {
-        if (document.hidden) {
-            stopSpeech();
-        }
-    });
+    displayCurrentQuestion();
+    updateCounter();
 });
 </script>
+
 </body>
 </html>

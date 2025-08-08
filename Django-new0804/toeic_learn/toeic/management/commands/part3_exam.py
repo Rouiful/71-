@@ -25,9 +25,9 @@ class Command(BaseCommand):
                     'description': "自動建立的聽力測驗",
                     'exam_type': 'toeic',
                     'part': part,
-                    'duration_minutes': 45,
+                    'duration_minutes': 20,
                     'total_questions': material.question_set.count(),
-                    'passing_score': 70.0,
+                    'passing_score': 60,
                     'is_active': True,
                 }
             )

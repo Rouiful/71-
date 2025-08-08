@@ -13,6 +13,7 @@ from .models import Exam, ExamQuestion, ExamSession
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.db.models import Count, Q, F, FloatField, ExpressionWrapper
+from django.core.paginator import Paginator
 
 # 獲取當前使用的使用者模型
 User = get_user_model()
@@ -89,7 +90,6 @@ def reading_test(request):
         'topic': passage.topic,
         'word_count': passage.word_count,
         'reading_level': passage.reading_level,
-        'source': passage.source,
     }
 
     # 將題目轉成 list of dict，方便 JS 使用
@@ -102,7 +102,6 @@ def reading_test(request):
             'option_b_text': q.option_b_text,
             'option_c_text': q.option_c_text,
             'option_d_text': q.option_d_text,
-            'option_e_text': q.option_e_text,
             'difficulty_level': q.difficulty_level,
         })
 
@@ -136,7 +135,6 @@ def generate_reading_passage_api(request):
                 'topic': topic,
                 'word_count': 120,
                 'reading_level': reading_level,
-                'source': '模擬資料',
                 'content': f'這是一篇關於 {topic} 的 {reading_level} 文章。'
             },
             'questions': []
@@ -181,8 +179,11 @@ def submit_test_answer(request):
         exam = session.exam
         exam_type = exam.exam_type
 
-        # 取得聽力文字稿 (如果有的話)
-        transcript = get_listening_transcript(exam)
+        # 儲存所有題目的文字稿
+        transcripts = {}
+        
+        # 新增一個字典來儲存 Part 3 的題目ID和其對應的文字稿
+        part3_transcripts = {}
 
         for qid, selected_option in answers.items():
             try:
@@ -193,10 +194,21 @@ def submit_test_answer(request):
             is_correct = (selected_option.lower() == question.is_correct.lower())
 
             # 儲存每一題作答
+            answer_text = ''
+            if selected_option.lower() == 'a':
+                answer_text = question.option_a_text
+            elif selected_option.lower() == 'b':
+                answer_text = question.option_b_text
+            elif selected_option.lower() == 'c':
+                answer_text = question.option_c_text
+            elif selected_option.lower() == 'd':
+                answer_text = question.option_d_text
+
             UserAnswer.objects.create(
                 session=session,
                 question=question,
                 selected_options=selected_option,
+                answer_text=answer_text, 
                 is_correct=is_correct,
                 answer_time=answer_time,
             )
@@ -222,8 +234,6 @@ def submit_test_answer(request):
                 {'value': 'c', 'text': question.option_c_text},
                 {'value': 'd', 'text': question.option_d_text},
             ]
-            if question.option_e_text:
-                options.append({'value': 'e', 'text': question.option_e_text})
 
             question_details.append({
                 'question_id': str(qid),
@@ -233,20 +243,23 @@ def submit_test_answer(request):
                 'is_correct': is_correct,
                 'explanation': question.explanation,
                 'options': options,
+                'part': f'part{question.part}' if question.part else None,  # ✨ 新增這行：加入 part 資訊
             })
+            
+            # 儲存文字稿
+            # Part 2 和 Part 3 的文字稿都來自 material
+            # 你的 models.py 中 ListeningMaterial 應該是 material
+            if question.material and question.material.transcript:
+                # 這裡儲存所有題目的文字稿，但前端會根據 part 屬性決定是否顯示
+                transcripts[str(qid)] = question.material.transcript
 
-        # 分數計算
-        print(f"correct_total: {correct_total}")
-        print(f"total_questions: {total_questions}")
-
+        # ... (分數計算和儲存 ExamResult 的部分保持不變)
         def calc_score(correct, total):
             return round((correct / total * 100), 2) if total else 0.0
 
         reading_score = calc_score(reading_correct, reading_total)
         listen_score = calc_score(listen_correct, listen_total)
         total_score = calc_score(correct_total, total_questions)
-
-        print(f"total_score: {total_score}")
 
         is_passed = total_score >= float(exam.passing_score)
 
@@ -273,6 +286,31 @@ def submit_test_answer(request):
             test_type = '聽力測驗'
         elif exam_type == 'mixed':
             test_type = '綜合測驗'
+            
+        # 由於 Part 3 的文字稿是多題共用，這裡我們再處理一次
+        # 確保只有 Part 3 的第一題會將文字稿傳遞給前端，以利前端判斷
+        final_transcripts = {}
+        part3_material_ids = set()
+
+        # 重新遍歷 question_details，將 Part 2 的文字稿直接加入，Part 3 則只加一次
+        for question in question_details:
+            qid = question['question_id']
+            part = question.get('part')
+            
+            # 如果是 Part 2，直接加入
+            if part == 'part2':
+                if qid in transcripts:
+                    final_transcripts[qid] = transcripts[qid]
+            
+            # 如果是 Part 3，且該 material_id 尚未處理過，才加入
+            elif part == 'part3':
+                try:
+                    q = Question.objects.get(question_id=qid)
+                    if q.material and q.material.material_id not in part3_material_ids:
+                        final_transcripts[qid] = q.material.transcript
+                        part3_material_ids.add(q.material.material_id)
+                except Question.DoesNotExist:
+                    continue
 
         response_data = {
             'success': True,
@@ -285,17 +323,14 @@ def submit_test_answer(request):
                 'listen_score': listen_score,
                 'question_details': question_details,
                 'test_type': test_type,
+                'transcripts': final_transcripts,  # ✨ 這裡回傳的 transcripts 是處理過的
             }
         }
-
-        # 如果是聽力測驗，加入文字稿
-        if transcript:
-            response_data['data']['listening_script'] = transcript
 
         return JsonResponse(response_data)
 
     except Exception as e:
-        print(f"Error in submit_test_answer: {str(e)}")  # 記錄錯誤訊息
+        print(f"Error in submit_test_answer: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)})
 
 def get_listening_transcript(exam):
@@ -338,10 +373,74 @@ def all_test_view(request):
     return render(request, 'all_test.html')
 
 def part2(request):
-    """
-    處理「應答問題」頁面顯示。
-    """
-    return render(request, 'part2.html')
+    part_number = 2
+
+    # 取得所有有 Part 2 題目的考卷
+    exam_ids = ExamQuestion.objects.filter(question__part=part_number).values_list('exam_id', flat=True).distinct()
+    if not exam_ids:
+        return render(request, 'part2.html', {'error': '目前沒有 Part 2 的考卷'})
+
+    selected_exam_id = random.choice(list(exam_ids))
+    exam = Exam.objects.get(pk=selected_exam_id)
+
+    # 取出這份考卷的所有 Part 2 題目
+    exam_questions = ExamQuestion.objects.filter(
+        exam=exam,
+        question__part=part_number
+    ).select_related('question').order_by('question_order')
+
+    # 以第一個有 material 的題目取出該段對話（ListeningMaterial）
+    material = None
+    questions_data = []
+
+    for eq in exam_questions:
+        q = eq.question
+        if q.material:
+            material = q.material
+        questions_data.append({
+            'question_id': str(q.question_id),
+            'question_text': q.question_text,
+            'option_a_text': q.option_a_text,
+            'option_b_text': q.option_b_text,
+            'option_c_text': q.option_c_text,
+            'difficulty_level': q.difficulty_level,
+            'transcript': q.material.transcript if q.material else None,  # 從 ListeningMaterial 模型獲取 transcript
+        })
+
+    if not material:
+        return render(request, 'part2.html', {'error': '考卷中未找到對應音檔'})
+
+    material_data = {
+        'audio_url': material.audio_url,
+        'transcript': material.transcript,
+        'topic': material.topic,
+        'accent': material.accent,
+        'listening_level': material.listening_level,
+    }
+
+    questions_json = json.dumps(questions_data)
+
+    # 建立使用者 session
+    user = request.user
+    if not user.is_authenticated:
+        return redirect('login')
+
+    session = ExamSession.objects.create(
+        exam=exam,
+        user=user,
+        time_limit_enabled=False,
+        start_time=timezone.now(),
+        end_time=timezone.now(),
+        status='in_progress',
+    )
+
+    context = {
+        'material': material_data,
+        'questions_json': questions_json,
+        'exam_id': exam.exam_id,
+        'session_id': session.session_id,
+    }
+    return render(request, 'part2.html', context)
 
 import json
 import random
@@ -381,7 +480,6 @@ def part3(request):
             'option_b_text': q.option_b_text,
             'option_c_text': q.option_c_text,
             'option_d_text': q.option_d_text,
-            'option_e_text': q.option_e_text,
             'difficulty_level': q.difficulty_level,
         })
 
@@ -394,7 +492,6 @@ def part3(request):
         'topic': material.topic,
         'accent': material.accent,
         'listening_level': material.listening_level,
-        'source': material.source,
     }
 
     questions_json = json.dumps(questions_data)
@@ -443,7 +540,6 @@ def part5(request):
             'option_b_text': q.option_b_text,
             'option_c_text': q.option_c_text,
             'option_d_text': q.option_d_text,
-            'option_e_text': q.option_e_text,
             'difficulty_level': q.difficulty_level,
         })
 
@@ -494,7 +590,6 @@ def part6(request):
             'option_b_text': q.option_b_text,
             'option_c_text': q.option_c_text,
             'option_d_text': q.option_d_text,
-            'option_e_text': q.option_e_text,
             'difficulty_level': q.difficulty_level,
         })
 
@@ -507,7 +602,6 @@ def part6(request):
         'topic': passage.topic,
         'word_count': passage.word_count,
         'reading_level': passage.reading_level,
-        'source': passage.source,
     }
 
     import json
@@ -563,7 +657,6 @@ def part7(request):
             'option_b_text': q.option_b_text,
             'option_c_text': q.option_c_text,
             'option_d_text': q.option_d_text,
-            'option_e_text': q.option_e_text,
             'difficulty_level': q.difficulty_level,
         })
 
@@ -576,7 +669,6 @@ def part7(request):
         'topic': passage.topic,
         'word_count': passage.word_count,
         'reading_level': passage.reading_level,
-        'source': passage.source,
     }
 
     questions_json = json.dumps(questions_data)
@@ -674,8 +766,18 @@ def record(request):
         .select_related('session__exam')
     )
 
+    # 設定每頁顯示的筆數 (可以根據需求修改)
+    items_per_page = 15  # 或者 items_per_page = 20
+
+    # 建立 Paginator 物件
+    paginator = Paginator(exam_results, items_per_page)
+
+    # 取得目前頁碼
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     # 為每個 ExamResult 物件增加 part_display 屬性
-    for result in exam_results:
+    for result in page_obj:
         result.part_display = result.session.exam.get_part_display()
 
     # 閱讀作答情況
@@ -723,7 +825,7 @@ def record(request):
 
     context = {
         'user': user,
-        'exam_results': exam_results,
+        'page_obj': page_obj,  # 使用 page_obj 傳遞分頁後的 ExamResult 物件
         'reading_progress': reading_progress,
         'listening_progress': listening_progress,
         'study_hours': study_hours,

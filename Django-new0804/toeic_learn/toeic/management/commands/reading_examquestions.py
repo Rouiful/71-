@@ -31,9 +31,9 @@ class Command(BaseCommand):
                     'description': f"自動建立的測驗 (附文章，Part {part})",
                     'exam_type': 'toeic',
                     'part': part,
-                    'duration_minutes': 60, # 預設文章類測驗時長
+                    'duration_minutes': 20, # 預設文章類測驗時長
                     'total_questions': passage.question_set.count(),
-                    'passing_score': 70.0,
+                    'passing_score': 60,
                     'is_active': True,
                 }
             )
@@ -86,9 +86,9 @@ class Command(BaseCommand):
                         'description': f"自動建立的測驗 (Part {part_to_batch} 第 {exam_set_number} 組，共 {len(current_batch_questions)} 題)",
                         'exam_type': 'toeic',
                         'part': part_to_batch,
-                        'duration_minutes': 10, # 5 題建議時長，可根據實際情況調整
+                        'duration_minutes': 20, # 5 題建議時長，可根據實際情況調整
                         'total_questions': len(current_batch_questions),
-                        'passing_score': 80.0, # 5 題建議及格分數
+                        'passing_score': 60, # 5 題建議及格分數
                         'is_active': True,
                     }
                 )

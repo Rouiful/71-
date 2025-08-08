@@ -84,6 +84,42 @@
             color: #fbc02d;
             margin-right: 6px;
         }
+
+        /* 分頁樣式 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination a {
+            color: #007BFF; /* 主要藍色 */
+            padding: 8px 16px;
+            text-decoration: none;
+            transition: background-color .3s, color .3s, border-color .3s;
+            border: 1px solid #007BFF; /* 主要藍色 */
+            margin: 0 4px;
+            border-radius: 4px; /* 圓角 */
+            font-weight: bold; /* 加粗 */
+        }
+
+        .pagination a.active {
+            background-color: #007BFF; /* 主要藍色 */
+            color: white;
+            border: 1px solid #007BFF; /* 主要藍色 */
+        }
+
+        .pagination a:hover:not(.active) {
+            background-color: #f0f8ff; /* 淺藍色背景 */
+            color: #0056b3; /* 深藍色文字 */
+            border-color: #0056b3; /* 深藍色邊框 */
+        }
+
+        .pagination .current {
+            padding: 8px 16px;
+            margin: 0 4px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -160,42 +196,104 @@
 </div>
         <div class="test-history">
             <h3>已完成測驗</h3>
-            <table class="table-standard">
-                <thead>
-                    <tr>
-                        <th>測驗類型</th>
-                        <th>日期</th>
-                        <th>分數</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for result in exam_results %}
-                    <tr>
-                        <td>{{ result.part_display }}</td>
-                        <td>{{ result.completed_at|date:"Y/m/d" }}</td>
-                        <td>{{ result.total_score }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="3">尚無測驗紀錄</td>
-                    </tr>
+            <div id="exam-results-container">
+                <table class="table-standard">
+                    <thead>
+                        <tr>
+                            <th>測驗類型</th>
+                            <th>日期</th>
+                            <th>分數</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in page_obj %}
+                        <tr>
+                            <td>{{ result.part_display }}</td>
+                            <td>{{ result.completed_at|date:"Y/m/d" }}</td>
+                            <td>{{ result.total_score }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3">尚無測驗紀錄</td>
+                        </tr>
                     {% endfor %}
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1" data-page="1">&laquo; 第一頁</a>
+                    <a href="?page={{ page_obj.previous_page_number }}" data-page="{{ page_obj.previous_page_number }}">上一頁</a>
+                {% endif %}
+
+                <span class="current">
+                    第 {{ page_obj.number }} 頁 / 共 {{ page_obj.paginator.num_pages }} 頁
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" data-page="{{ page_obj.next_page_number }}">下一頁</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}" data-page="{{ page_obj.paginator.num_pages }}">最後一頁 &raquo;</a>
+                {% endif %}
+            </div>
         </div>
     </div>
 
     <a href="{% url 'home' %}" id="backButton">回到首頁</a>
 
     <script>
-        const currentPage = window.location.pathname.split("/").pop();
-        const navLinks = document.querySelectorAll(".nav-buttons a");
-        navLinks.forEach(link => {
-            const page = link.getAttribute("href");
-            if (page === currentPage) {
-                link.querySelector(".nav-btn").classList.add("current");
-            }
+        // 取得所有分頁連結
+        const paginationLinks = document.querySelectorAll('.pagination a');
+        const examResultsContainer = document.getElementById('exam-results-container');
+
+        // 為每個分頁連結加入點擊事件監聽器
+        paginationLinks.forEach(link => {
+            link.addEventListener('click', function(event) {
+                // 阻止連結的預設行為 (避免跳到頁面頂端)
+                event.preventDefault();
+
+                // 取得要載入的頁碼
+                const pageNumber = this.dataset.page;
+
+                // 使用 AJAX 載入新的內容
+                fetch(`?page=${pageNumber}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        // 將新的內容插入到 exam-results-container 中
+                        const newContent = new DOMParser().parseFromString(data, 'text/html').querySelector('#exam-results-container');
+                        examResultsContainer.innerHTML = newContent.innerHTML;
+
+                        // 更新分頁連結
+                        const newPagination = new DOMParser().parseFromString(data, 'text/html').querySelector('.pagination');
+                        document.querySelector('.pagination').innerHTML = newPagination.innerHTML;
+
+                        // 重新綁定事件監聽器
+                        bindPaginationEvents();
+                    });
+            });
         });
+
+        function bindPaginationEvents() {
+            const paginationLinks = document.querySelectorAll('.pagination a');
+            paginationLinks.forEach(link => {
+                link.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const pageNumber = this.dataset.page;
+
+                    fetch(`?page=${pageNumber}`)
+                        .then(response => response.text())
+                        .then(data => {
+                            const newContent = new DOMParser().parseFromString(data, 'text/html').querySelector('#exam-results-container');
+                            examResultsContainer.innerHTML = newContent.innerHTML;
+
+                            const newPagination = new DOMParser().parseFromString(data, 'text/html').querySelector('.pagination');
+                            document.querySelector('.pagination').innerHTML = newPagination.innerHTML;
+
+                            bindPaginationEvents();
+                        });
+                });
+            });
+        }
     </script>
 
     <footer class="footer">
@@ -216,7 +314,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2024 TOEIC學習平台 版權所有</p>
+            <p>&copy; 2025 TOEIC學習平台 版權所有</p>
         </div>
     </footer>
 </body>
