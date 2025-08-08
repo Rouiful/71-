@@ -1,0 +1,414 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOEIC學習平台-測驗結果</title>
+    <link rel="stylesheet" href="{% static 'css/common.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/result.css' %}">
+
+    <style>
+        /* Part 3 文字稿的整體容器樣式 */
+        #listening-script-section {
+            margin-bottom: 30px;
+        }
+        
+        #listening-script-section .analysis-section h3 {
+            display: flex;
+            align-items: center;
+            color: #343a40;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        #listening-script-section .analysis-section h3 .fas {
+            margin-right: 10px;
+            color: #007bff;
+        }
+        
+        #listening-script-content {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        #listening-script-content pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: inherit;
+            margin: 0;
+            line-height: 1.6;
+            color: #495057;
+        }
+        
+        #listening-script-note {
+            margin-top: 10px;
+            color: #6c757d;
+            font-size: 0.95em;
+            font-style: italic;
+        }
+
+        /* Part 2 單題文字稿的樣式 */
+        .question-details .transcript {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-left: 4px solid #4a90e2;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .question-details .transcript h4 {
+            color: #4a90e2;
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+        }
+
+        .question-details .transcript h4 .fas {
+            margin-right: 8px;
+        }
+
+        .question-details .transcript pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: inherit;
+            margin: 0;
+            line-height: 1.6;
+            color: #495057;
+        }
+    </style>
+
+</head>
+<body>
+    <div class="header">
+        <button class="menu-btn" id="menu-btn">☰</button>
+        <h1>TOEIC學習平台</h1>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="result-title">測驗結果</span>
+    </div>
+    
+    <div class="container">
+        <div id="loading" class="loading-section">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            <p>正在載入結果...</p>
+        </div>
+        
+        <div id="result-content" class="result-content" style="display: none;">
+            <div class="test-overview">
+                <div class="score-card">
+                    <h2><i class="fas fa-trophy"></i> 測驗完成</h2>
+                    <div class="score-display">
+                        <span class="score-number" id="total-score">--</span>
+                        <span class="score-total">/ <span id="max-score">--</span></span>
+                    </div>
+                    <p class="score-percentage" id="score-percentage">--</p>
+                </div>
+                
+                <div class="test-info">
+                    <p><strong>測驗類型：</strong><span id="test-type">{{ test_type|default:"閱讀測驗" }}</span></p>
+                    <p><strong>完成時間：</strong><span id="completion-time">--</span></p>
+                    <p><strong>題目數量：</strong><span id="total-questions">--</span></p>
+                </div>
+            </div>
+
+            <div class="analysis-section">
+                <h3><i class="fas fa-chart-bar"></i> 詳細分析</h3>
+                
+                <div class="stats-grid">
+                    <div class="stat-card correct">
+                        <i class="fas fa-check-circle"></i>
+                        <h4>答對題數</h4>
+                        <p class="stat-number" id="correct-answers">--</p>
+                    </div>
+                    
+                    <div class="stat-card incorrect">
+                        <i class="fas fa-times-circle"></i>
+                        <h4>答錯題數</h4>
+                        <p class="stat-number" id="incorrect-answers">--</p>
+                    </div>
+                    
+                    <div class="stat-card accuracy">
+                        <i class="fas fa-percentage"></i>
+                        <h4>正確率</h4>
+                        <p class="stat-number" id="accuracy-rate">--</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="listening-script-section" style="display:none; margin-bottom:30px;">
+                <div class="analysis-section">
+                    <h3><i class="fas fa-headphones"></i> 聽力文字稿</h3>
+                    <div id="listening-script-content"></div>
+                    <div id="listening-script-note" style="margin-top:10px; color:#888; font-size:0.95em;"></div>
+                </div>
+            </div>
+
+            <div class="answer-details">
+                <h3><i class="fas fa-list-alt"></i> 答題詳情</h3>
+                <div id="question-results">
+                    </div>
+            </div>
+
+            <div class="feedback-section">
+                <h3><i class="fas fa-lightbulb"></i> 學習建議</h3>
+                <div id="ai-feedback" class="feedback-content">
+                    </div>
+            </div>
+
+            <div id="error-message" class="error-section" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>載入結果時發生錯誤</h3>
+                <p id="error-text">無法載入測驗結果，請稍後再試。</p>
+                <button onclick="location.reload()" class="retry-btn">
+                    <i class="fas fa-redo"></i> 重新載入
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{% url 'home' %}" class="btn btn-secondary">
+            <i class="fas fa-home"></i> 回到首頁
+        </a>
+        <button onclick="retakeTest()" class="btn btn-primary">
+            <i class="fas fa-redo"></i> 重新測驗
+        </button>
+        <button onclick="viewRecord()" class="btn btn-info">
+            <i class="fas fa-history"></i> 查看記錄
+        </button>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="contact-us">
+                <h3>聯絡我們</h3>
+                <ul>
+                    <li><i class="fas fa-phone"></i><a href="tel:02 3322 2777"> 電話：02 3322 2777</a></li>
+                    <li><i class="fas fa-map"></i><a href="https://maps.app.goo.gl/yJ6h18H62g8P96GDA" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3615.000492801456!2d121.52336327599026!3d25.03975763806306!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a964a7801121%3A0xf69562ac16e91f1a!2zMTAw5Y-w5YyX5biC5Lit5a6a5Y2A6IiI5aSn6Lev5Y2A3LzEtMzIx6號!5e0!3m2!1szh-TW!2stw!4v1714559132535!5m2!1szh-TW!2stw" 
+                    width="300"
+                    height="250"
+                    style="border:0;"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 TOEIC學習平台 版權所有</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTestResult();
+        });
+
+        function loadTestResult() {
+            try {
+                const resultData = sessionStorage.getItem('test_result_data');
+                
+                if (!resultData) {
+                    showError('找不到測驗結果資料');
+                    return;
+                }
+
+                const data = JSON.parse(resultData);
+                console.log('Result data:', data);
+                
+                handlePart3Transcript(data);
+                renderResult(data);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result-content').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error loading result:', error);
+                showError('載入結果時發生錯誤：' + error.message);
+            }
+        }
+
+        function handlePart3Transcript(data) {
+            const transcriptContainer = document.getElementById('listening-script-content');
+            const section = document.getElementById('listening-script-section');
+            
+            let part3Transcript = null;
+
+            if (data.question_details && data.transcripts) {
+                for (const question of data.question_details) {
+                    if (question.part === 'part3' && data.transcripts[question.question_id]) {
+                        part3Transcript = data.transcripts[question.question_id];
+                        break;
+                    }
+                }
+            }
+
+            if (part3Transcript) {
+                transcriptContainer.innerHTML = `<pre>${part3Transcript}</pre>`;
+                section.style.display = 'block';
+                document.getElementById('listening-script-note').textContent = '此為 Part 3 對話的完整文字稿';
+            } else {
+                section.style.display = 'none';
+            }
+        }
+
+        function renderQuestionResults(data) {
+            const container = document.getElementById('question-results');
+            if (!data.question_details || !Array.isArray(data.question_details)) {
+                container.innerHTML = '<p>無詳細答題資訊</p>';
+                return;
+            }
+
+            let html = '';
+            data.question_details.forEach((question, index) => {
+                const isCorrect = question.is_correct;
+                const statusClass = isCorrect ? 'correct' : 'incorrect';
+                const statusIcon = isCorrect ? 'fa-check-circle' : 'fa-times-circle';
+                const statusText = question.user_answer ? (isCorrect ? '正確' : '錯誤') : '未作答';
+                const part = question.part;
+                
+                let optionsHtml = '';
+                if (question.options && Array.isArray(question.options)) {
+                    // 關鍵修改：篩選掉 Part 2 的 D 選項
+                    optionsHtml = question.options
+                        .filter(option => !(question.part === 'part2' && option.value.toUpperCase() === 'D'))
+                        .map(option => {
+                            const optVal = option.value.toLowerCase();
+                            const userAns = (question.user_answer || '').toLowerCase();
+                            const correctAns = (question.correct_answer || '').toLowerCase();
+
+                            let optionClass = 'option-item';
+                            let iconHtml = '<i class="fas fa-circle option-icon neutral-icon"></i>';
+
+                            if (optVal === userAns && optVal === correctAns) {
+                                optionClass += ' correct-option';
+                                iconHtml = '<i class="fas fa-check-circle option-icon correct-icon"></i>';
+                            } else if (optVal === userAns && optVal !== correctAns) {
+                                optionClass += ' incorrect-option';
+                                iconHtml = '<i class="fas fa-times-circle option-icon incorrect-icon"></i>';
+                            } else if (optVal === correctAns && optVal !== userAns) {
+                                optionClass += ' correct-option';
+                                iconHtml = '<i class="fas fa-check-circle option-icon correct-icon"></i>';
+                            }
+                            return `
+                                <div class="${optionClass}">
+                                    ${iconHtml}
+                                    <span class="option-label">${option.value.toUpperCase()}.</span>
+                                    <span class="option-text">${option.text}</span>
+                                </div>
+                            `;
+                        }).join('');
+                }
+                
+                const transcript = (part === 'part2' && data.transcripts && data.transcripts[question.question_id])
+                                  ? data.transcripts[question.question_id] 
+                                  : null;
+
+                html += `
+                    <div class="question-result ${statusClass}">
+                        <div class="question-header">
+                            <div class="question-info">
+                                <span class="question-number">題目 ${index + 1}</span>
+                                ${part ? `<span class="question-part">(${part.toUpperCase()})</span>` : ''}
+                            </div>
+                            <span class="question-status">
+                                <i class="fas ${statusIcon}"></i>
+                                ${statusText}
+                            </span>
+                        </div>
+                        <div class="question-content">
+                            ${question.question_text ? `<div class="question-text">${question.question_text}</div>` : ''}
+                            ${optionsHtml ? `<div class="options-container">${optionsHtml}</div>` : ''}
+                        </div>
+                        <div class="question-details">
+                            ${question.explanation ? `<div class="explanation"><p><strong>解釋：</strong>${question.explanation}</p></div>` : ''}
+                            ${transcript ? `
+                                <div class="transcript">
+                                    <h4><i class="fas fa-file-audio"></i> 文字稿</h4>
+                                    <pre>${transcript}</pre>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderResult(data) {
+            const totalQuestions = data.total_questions || 0;
+            const correctAnswers = data.correct_answers || 0;
+            const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+            
+            document.getElementById('total-score').textContent = correctAnswers;
+            document.getElementById('max-score').textContent = totalQuestions;
+            document.getElementById('score-percentage').textContent = accuracy + '% 正確';
+
+            document.getElementById('completion-time').textContent = new Date().toLocaleString('zh-TW');
+            document.getElementById('total-questions').textContent = totalQuestions;
+            document.getElementById('test-type').textContent = data.test_type || '閱讀測驗';
+
+            document.getElementById('correct-answers').textContent = correctAnswers;
+            document.getElementById('incorrect-answers').textContent = totalQuestions - correctAnswers;
+            document.getElementById('accuracy-rate').textContent = accuracy + '%';
+
+            renderQuestionResults(data);
+            renderFeedback(data);
+        }
+
+        function renderFeedback(data) {
+            const container = document.getElementById('ai-feedback');
+            
+            if (data.feedback && data.feedback.length > 0) {
+                let html = '<ul>';
+                data.feedback.forEach(item => {
+                    html += `<li>${item}</li>`;
+                });
+                html += '</ul>';
+                container.innerHTML = html;
+            } else if (data.ai_feedback) {
+                container.innerHTML = `<p>${data.ai_feedback}</p>`;
+            } else {
+                const accuracy = data.correct_answers && data.total_questions ?
+                    Math.round((data.correct_answers / data.total_questions) * 100) : 0;
+                
+                let feedback = '';
+                if (accuracy >= 80) {
+                    feedback = '表現優秀！繼續保持這樣的學習狀態。';
+                } else if (accuracy >= 60) {
+                    feedback = '表現不錯，建議多練習弱項部分以提升分數。';
+                } else {
+                    feedback = '需要加強練習，建議重新複習相關內容並多做練習題。';
+                }
+                container.innerHTML = `<p>${feedback}</p>`;
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('result-content').style.display = 'none';
+            document.getElementById('error-message').style.display = 'block';
+            document.getElementById('error-text').textContent = message;
+        }
+
+        function retakeTest() {
+            sessionStorage.removeItem('test_result_data');
+            window.location.href = '/test/';
+        }
+
+        function viewRecord() {
+            window.location.href = '/record/';
+        }
+    </script>
+</body>
+</html>
