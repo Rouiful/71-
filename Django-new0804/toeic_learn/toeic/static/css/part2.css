@@ -78,3 +78,20 @@
             margin-top: 20px;
             margin-bottom: 20px;
         }
+
+        /* 自定義樣式，讓選項更美觀 */
+        .quiz-options li {
+            display: inline-block; /* 讓選項水平排列 */
+            margin: 5px;
+        }
+        .quiz-options label {
+            display: inline-block;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #f9f9f9;
+        }
+        .quiz-options label.selected {
+            background-color: #e0e0e0;
+        }

@@ -255,6 +255,11 @@
                 const data = JSON.parse(resultData);
                 console.log('Result data:', data);
                 
+                // 關鍵修正：在渲染前對題目進行排序
+                if (data.question_details) {
+                    data.question_details.sort((a, b) => a.question_id - b.question_id);
+                }
+
                 handlePart3Transcript(data);
                 renderResult(data);
                 
@@ -299,6 +304,7 @@
             }
 
             let html = '';
+            // 使用排序後的 data.question_details
             data.question_details.forEach((question, index) => {
                 const isCorrect = question.is_correct;
                 const statusClass = isCorrect ? 'correct' : 'incorrect';

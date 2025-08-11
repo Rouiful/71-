@@ -2,769 +2,401 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>綜合測驗 - TOEIC學習平台</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TOEIC學習平台 - 綜合測驗</title>
     <link rel="stylesheet" href="{% static 'css/common.css' %}">
-    <link rel="stylesheet" href="{% static 'css/listening_test.css' %}"> {# 為測驗特定樣式#}
-    <link rel="stylesheet" href="{% static 'css/all_test.css' %}"> {# 新增的綜合測驗專用CSS #}
-
-    {# 引入 Font Awesome 如果你需要圖標 #}
+    <link rel="stylesheet" href="{% static 'css/reading_test.css' %}">
+    <link rel="stylesheet" href="{% static 'css/part2.css' %}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* 確保樣式能正確覆蓋，以支援不同 Part 的顯示 */
+        .quiz-options {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quiz-options li {
+            margin-bottom: 0;
+        }
+        
+        .quiz-options label {
+            display: block;
+            padding: 12px 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            transition: background-color 0.2s;
+        }
+        
+        .quiz-options label:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .quiz-options input[type="radio"] {
+            display: none;
+        }
+        
+        .quiz-options label.selected {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        /* 專為 Part 2 設置的特殊樣式 */
+        .quiz-options.part2-style {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .quiz-options.part2-style label {
+            width: 60px;
+            height: 60px;
+            text-align: center;
+            line-height: 60px;
+            padding: 0;
+            border-radius: 50%;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
         <button class="menu-btn" id="menu-btn">☰</button>
         <h1>TOEIC學習平台</h1>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <span class="listening-title">綜合測驗</span>
+        <span class="reading-title">綜合測驗</span>
     </div>
 
-    <div class="container all-test-container"> {# 添加一個特定 class 方便樣式控制 #}
-        <h2>綜合測驗練習</h2>
-        <div id="quiz-progress">
-            <span id="current-question-count">題目0/0</span>
-        </div>
+    <div class="container" id="main-container">
+        {% if error %}
+            <div class="error-message">
+                <h4><i class="fas fa-exclamation-triangle"></i> 錯誤</h4>
+                <p>{{ error }}</p>
+                <button onclick="location.reload()" class="nav-btn">重新載入</button>
+            </div>
+        {% elif questions_json %}
+            <h2 class="center-title" id="test-title"></h2>
+            <p>發佈日期: <span id="currentDate"></span></p>
 
-        {# 主測驗內容區域 #}
-        <div id="quiz-area">
-            <p id="quiz-loading-message" class="quiz-area-placeholder" style="display: none;">
-                <i class="fas fa-spinner fa-spin"></i> 載入中...
-            </p>
-
-            <div id="part-content" style="display: none;">
-                {# 不同 Part 的內容將在這裡動態加載 #}
-                {# Part 2 專區 #}
-                <div id="part2-section" class="quiz-part-section" style="display: none;">
-                    <h3>應答問題: Question-Response</h3>
-                    <div class="audio-player-container">
-                        <audio id="part2-audio-player" preload="auto"></audio>
-                        <button id="part2-play-audio-btn"><i class="fas fa-play"></i> 播放音頻</button>
-                    </div>
-                    <div class="question-container">
-                        <p class="question-text" id="part2-question-text"></p>
-                        <div class="options-container" id="part2-options-container">
-                        </div>
-                    </div>
+            <div class="passage-info" id="passage-info"></div>
+            
+            <div class="passage-box" id="passage-box" style="display: none;">
                 </div>
 
-                {# Part 3 專區 (類似 Part 2，但可能有對話稿和多個問題) #}
-                <div id="part3-section" class="quiz-part-section" style="display: none;">
-                    <h3>簡短對話: Conversations</h3>
-                    <div class="audio-player-container">
-                        <audio id="part3-audio-player" preload="auto"></audio>
-                        <button id="part3-play-audio-btn"><i class="fas fa-play"></i> 播放音頻</button>
-                    </div>
-                    <div class="transcript-container" id="part3-transcript-container">
-                    </div>
-                    <div id="part3-questions-list">
-                    </div>
-                </div>
-
-                {# Part 5 專區 #}
-                <div id="part5-section" class="quiz-part-section" style="display: none;">
-                    <h3>句子填空: Incomplete Sentences</h3>
-                    <div class="question-container">
-                        <p class="question-text" id="part5-question-text"></p>
-                        <div class="options-container" id="part5-options-container">
-                        </div>
-                    </div>
-                </div>
-
-                {# Part 6 專區 #}
-                <div id="part6-section" class="quiz-part-section" style="display: none;">
-                    <h3>段落填空: Text Completion</h3>
-                    <div class="passage-container" id="part6-passage-container">
-                    </div>
-                    <div id="part6-questions-list">
-                    </div>
-                </div>
-
-                {# Part 7 專區 #}
-                <div id="part7-section" class="quiz-part-section" style="display: none;">
-                    <h3>閱讀測驗: Reading Comprehension</h3>
-                    <div class="passage-container" id="part7-passage-container">
-                    </div>
-                    <div id="part7-questions-list">
-                    </div>
-                </div>
-
-            </div> {# end part-content #}
-
-            {# 統一的結果顯示區域 - 這裡的 ID 應該是 quiz-result-display #}
-            <div class="result-display" id="quiz-result-display" style="display: none;">
-                <h2>您的測驗結果</h2>
-                <div class="score-summary">
-                    <p>答對題目: <span id="correct-count">0</span> / <span id="total-questions-answered">0</span></p>
-                </div>
-                <div class="progress-container">
-                    <div class="progress-bar" id="score-progress-bar"></div>
-                </div>
-                <div class="score-text">
-                    <span id="score-percentage">0%</span>
-                </div>
-                {# 按鈕將由 JS 控制顯示與隱藏 #}
-                <button id="review-answers-btn" class="nav-btn mt-4" style="display: none;">查看正解</button>
-                <button id="return-to-menu-btn" class="nav-btn mt-4" style="display: none;">返回測驗列表</button>
+            <div id="question-counter">
+                <div class="difficulty-badge" id="difficulty-badge">Loading...</div>
+                <div>題目 <span id="current-question">1</span> / <span id="total-questions"></span></div>
             </div>
 
-            {# 通用的反饋和解釋區塊 #}
-            <div id="quiz-feedback" class="feedback" style="display: none;"></div>
-            <div id="quiz-explanation" class="explanation" style="display: none;"></div>
-
-            {# 統一的導航按鈕區塊 #}
-            <div class="quiz-navigation">
-                <button id="prev-question-btn" style="display: none;"><i class="fas fa-arrow-left"></i> 上一題</button>
-                <button id="next-question-btn">下一題 <i class="fas fa-arrow-right"></i></button>
-                <button id="submit-quiz-btn" style="display: none;"><i class="fas fa-check"></i> 完成測驗</button>
-                <button id="end-review-btn" class="nav-btn" style="display: none;">返回測驗列表</button> {# 此按鈕只在特定情況下顯示 #}
+            <div id="question-container">
+                <div class="quiz-box">
+                    <p id="question"></p>
+                    <ul id="options"></ul>
+                </div>
             </div>
 
-        </div> {# end quiz-area #}
-    </div> {# end container all-test-container #}
-    
+            <div class="navigation-buttons">
+                <button id="prev-btn" class="nav-btn" type="button">
+                    <i class="fas fa-chevron-left"></i> 上一題
+                </button>
+                <button id="next-btn" class="nav-btn" type="button">
+                    下一題 <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        {% else %}
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>載入題目中...</p>
+            </div>
+        {% endif %}
+    </div>
+
     <a href="{% url 'test' %}" id="backButton">回到上一頁</a>
 
-    <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // === DOM 元素獲取 ===
-    const quizArea = document.getElementById('quiz-area'); // 主測驗內容容器，用於在結果頁面清空
-    const quizLoadingMessage = document.getElementById('quiz-loading-message');
-    const partContent = document.getElementById('part-content');
-    const quizProgress = document.getElementById('quiz-progress');
-    const currentPartSpan = document.getElementById('current-part');
-    const currentQuestionCountSpan = document.getElementById('current-question-count');
-
-    // 新增/更新的結果顯示區域元素
-    const quizResultDisplay = document.getElementById('quiz-result-display');
-    const correctCountSpan = document.getElementById('correct-count');
-    const totalQuestionsAnsweredSpan = document.getElementById('total-questions-answered');
-    const scoreProgressBar = document.getElementById('score-progress-bar');
-    const scorePercentageSpan = document.getElementById('score-percentage');
-    let reviewAnswersBtn = document.getElementById('review-answers-btn');
-    const returnToMenuBtn = document.getElementById('return-to-menu-btn');
-
-    const partSections = {
-        '2': document.getElementById('part2-section'),
-        '3': document.getElementById('part3-section'),
-        '5': document.getElementById('part5-section'),
-        '6': document.getElementById('part6-section'),
-        '7': document.getElementById('part7-section'),
-    };
-
-    // Part 2 元素
-    const part2AudioPlayer = document.getElementById('part2-audio-player');
-    const part2PlayAudioBtn = document.getElementById('part2-play-audio-btn');
-    const part2QuestionText = document.getElementById('part2-question-text');
-    const part2OptionsContainer = document.getElementById('part2-options-container');
-
-    // Part 3 元素
-    const part3AudioPlayer = document.getElementById('part3-audio-player');
-    const part3PlayAudioBtn = document.getElementById('part3-play-audio-btn');
-    const part3TranscriptContainer = document.getElementById('part3-transcript-container');
-    const part3QuestionsList = document.getElementById('part3-questions-list');
-
-    // Part 5 元素
-    const part5QuestionText = document.getElementById('part5-question-text');
-    const part5OptionsContainer = document.getElementById('part5-options-container');
-
-    // Part 6 元素
-    const part6PassageContainer = document.getElementById('part6-passage-container');
-    const part6QuestionsList = document.getElementById('part6-questions-list');
-
-    // Part 7 元素
-    const part7PassageContainer = document.getElementById('part7-passage-container');
-    const part7QuestionsList = document.getElementById('part7-questions-list');
-
-    // 反饋和導航
-    const quizFeedbackDiv = document.getElementById('quiz-feedback');
-    const quizExplanationDiv = document.getElementById('quiz-explanation');
-    const prevQuestionBtn = document.getElementById('prev-question-btn');
-    const nextQuestionBtn = document.getElementById('next-question-btn');
-    const submitQuizBtn = document.getElementById('submit-quiz-btn');
-    const endReviewBtn = document.getElementById('end-review-btn');
-
-    // === 靜態題目數據 (硬編碼) ===
-    const staticQuizData = {
-        '2': [
-            {
-                material: { material_id: 'mat-p2-001', audio_url: '/static/audio/p2_q1.mp3', transcript: 'Question. What is the main goal of a market research survey?' },
-                question: { question_id: 'q-p2-001', question_text: 'What is the main goal of a market research survey?', options: { A: "It's to analyze customer behavior.", B: "It helps companies understand their competitors.", C: "It measures public opinion on social issues." }, is_correct: 'A', explanation: '市場研究的主要目標是分析消費者行為。', part: '2', question_category: 'topic' }
-            },
-            {
-                material: { material_id: 'mat-p2-002', audio_url: '/static/audio/p2_q2.mp3', transcript: 'Question. Where is the nearest ATM?' },
-                question: { question_id: 'q-p2-002', question_text: 'Where is the nearest ATM?', options: { A: "It's on the second floor, next to the elevator.", B: "I need to withdraw some cash.", C: "The bank opens at 9 AM." }, is_correct: 'A', explanation: '最近的 ATM 在二樓電梯旁邊。', part: '2', question_category: 'location' }
-            }
-        ],
-        '3': [
-            {
-                material: {
-                    material_id: 'mat-p3-001',
-                    audio_url: '/static/audio/p3_q1_3.mp3',
-                    transcript: "Woman: Excuse me, is the 2 o'clock flight to London still on time? Man: Let me check. It seems there's a slight delay due to unexpected weather conditions. Woman: Oh no, how long will it be delayed? Man: We estimate about 30 minutes, but please keep an eye on the departure board for further updates."
-                },
-                questions: [
-                    { question_id: 'q-p3-001a', question_text: '1. What is the woman asking about?', options: { A: 'The departure gate.', B: 'The flight status.', C: 'The boarding time.', D: 'The luggage claim.' }, is_correct: 'B', explanation: '女人在詢問航班是否準點。', part: '3', question_category: 'detail' },
-                    { question_id: 'q-p3-001b', question_text: '2. What is the reason for the delay?', options: { A: 'A mechanical issue.', B: 'Unexpected weather conditions.', C: 'Air traffic control.', D: 'Late arrival of the aircraft.' }, is_correct: 'B', explanation: '延誤是因為意外的天氣狀況。', part: '3', question_category: 'detail' },
-                    { question_id: 'q-p3-001c', question_text: '3. What should the woman do?', options: { A: 'Go to the boarding gate.', B: 'Check the departure board.', C: 'Collect her luggage.', D: 'Ask for a refund.' }, is_correct: 'B', explanation: '女人應該留意出發顯示板。', part: '3', question_category: 'action' }
-                ]
-            }
-        ],
-        '5': [
-            {
-                question: { question_id: 'q-p5-001', question_text: 'The new policy will be implemented ______ next quarter.', options: { A: 'effective', B: 'effectively', C: 'effecting', D: 'effected' }, is_correct: 'A', explanation: '此處需要形容詞修飾動詞be implemented。', part: '5', question_category: 'grammar' }
-            },
-            {
-                question: { question_id: 'q-p5-002', question_text: 'Due to the heavy rain, the outdoor event was ______ until next week.', options: { A: 'postponed', B: 'extended', C: 'delayed', D: 'canceled' }, is_correct: 'A', explanation: '因大雨，戶外活動被延期至下週。', part: '5', question_category: 'vocab' }
-            }
-        ],
-        '6': [
-            {
-                material: {
-                    material_id: 'mat-p6-001',
-                    passage_text: "To: All Employees\nFrom: HR Department\nSubject: Office Renovation\n\nDear Team,\n\nWe are pleased to announce that our office will undergo a renovation beginning next Monday, July 29. This project is aimed at creating a more modern and collaborative workspace. During the renovation, temporary workspaces will be provided on the third floor. We appreciate your patience and cooperation ______ this period. We believe the improved environment will greatly enhance our productivity and comfort. Please direct any questions to facilities management. Thank you for your understanding. "
-                },
-                questions: [
-                    { question_id: 'q-p6-001a', question_text: '1. Which word best completes the sentence?', options: { A: 'at', B: 'during', C: 'for', D: 'by' }, is_correct: 'B', explanation: '在一段時間內，用during。', part: '6', question_category: 'grammar' },
-                    { question_id: 'q-p6-001b', question_text: '2. What is the main purpose of the renovation?', options: { A: 'To reduce costs.', B: 'To expand the office.', C: 'To create a modern workspace.', D: 'To hire more employees.' }, is_correct: 'C', explanation: '裝修的目的是創造一個更現代化的工作空間。', part: '6', question_category: 'detail' }
-                ]
-            }
-        ],
-        '7': [
-            {
-                material: {
-                    material_id: 'mat-p7-001',
-                    passage_text: "MEMORANDUM\nTo: Department Heads\nFrom: Michael Chen, CEO\nDate: July 24, 2025\nSubject: Quarterly Performance Review\n\nPlease ensure that all departmental performance reports are submitted to my office by Friday, August 9. These reports are crucial for our upcoming board meeting on August 15. We will be reviewing our progress towards our annual goals and planning strategies for the next quarter. Your timely submission is greatly appreciated.\n\nThank you for your continued dedication."
-                },
-                questions: [
-                    { question_id: 'q-p7-001a', question_text: '1. What is the main purpose of this memorandum?', options: { A: 'To announce a board meeting.', B: 'To request performance reports.', C: 'To discuss quarterly goals.', D: 'To praise employee dedication.' }, is_correct: 'B', explanation: '備忘錄的主要目的是要求提交績效報告。', part: '7', question_category: 'main_idea' },
-                    { question_id: 'q-p7-001b', question_text: '2. When is the deadline for submitting the reports?', options: { A: 'July 24', B: 'August 9', C: 'August 15', D: 'Next quarter' }, is_correct: 'B', explanation: '報告提交的截止日期是8月9日。', part: '7', question_category: 'detail' }
-                ]
-            }
-        ]
-    };
-
-    // 所有 Part 的順序
-    const partOrder = ['2', '3', '5', '6', '7'];
-
-    // === 測驗狀態變數 ===
-    let currentQuizState = {
-        currentPartIndex: 0, // 當前 Part 在 partOrder 中的索引
-        currentQuestionIndex: 0, // 當前 Part 內部題組的索引（對於單材料多問題的 Part，這是材料的索引）
-        questionsInCurrentMaterial: [], // 當前材料（或單題 Part）的所有題目數據
-        selectedAnswers: {}, // { question_id: selected_option } 儲存用戶答案
-        quizSubmitted: false, // 標記測驗是否已提交 (用於控制答題行為)
-        isReviewMode: false, // 新增：標記是否在查看正解模式
-        totalQuestions: 0, // 所有 Part 的總題目數
-        totalCorrectAnswers: 0, // 總共答對的題目數量 (最終提交後統計)
-    };
-
-    // 計算總題目數
-    function calculateTotalQuestions() {
-        let count = 0;
-        for (const part of partOrder) {
-            const partData = staticQuizData[part];
-            if (partData) {
-                partData.forEach(item => {
-                    if (item.questions) { // Part 3, 6, 7 (多個問題)
-                        count += item.questions.length;
-                    } else if (item.question) { // Part 2, 5 (單個問題)
-                        count += 1;
-                    }
-                });
-            }
-        }
-        currentQuizState.totalQuestions = count;
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const sessionId = "{{ session_id }}";
+    const questionsData = JSON.parse('{{ questions_json|escapejs }}');
+    const currentDateEl = document.getElementById("currentDate");
+    const totalQuestionsEl = document.getElementById('total-questions');
+    
+    if (currentDateEl) {
+        currentDateEl.textContent = new Date().toISOString().split('T')[0];
+    }
+    
+    let currentQuestionIndex = 0;
+    let userAnswers = {};
+    
+    if (questionsData.length > 0) {
+        totalQuestionsEl.textContent = questionsData.length;
     }
 
-    // === 初始化測驗 ===
-    initializeQuiz();
+    // 移除 pageTitleEl，因為標題現在是靜態的
+    // const pageTitleEl = document.getElementById('page-title');
+    const testTitleEl = document.getElementById('test-title');
+    const passageInfoEl = document.getElementById('passage-info');
+    const passageBoxEl = document.getElementById('passage-box');
+    const optionsContainer = document.getElementById('options');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
 
-    function initializeQuiz() {
-        calculateTotalQuestions(); // 計算總題目數
-
-        quizLoadingMessage.style.display = 'block';
-        partContent.style.display = 'none';
-        quizFeedbackDiv.style.display = 'none';
-        quizExplanationDiv.style.display = 'none';
-        quizResultDisplay.style.display = 'none'; // 初始隱藏結果顯示區域
-
-        // 初始隱藏所有導航按鈕 (顯示時由 loadCurrentQuestion 控制)
-        prevQuestionBtn.style.display = 'none';
-        nextQuestionBtn.style.display = 'none';
-        submitQuizBtn.style.display = 'none';
-        reviewAnswersBtn.style.display = 'none';
-        returnToMenuBtn.style.display = 'none';
-        endReviewBtn.style.display = 'none';
-
-        loadCurrentQuestion();
+    let audioPlayer = document.getElementById('audio-player');
+    if (!audioPlayer) {
+        audioPlayer = document.createElement('audio');
+        audioPlayer.setAttribute('controls', '');
+        audioPlayer.id = 'audio-player';
     }
 
-    // === 加載並渲染當前題目 ===
-    function loadCurrentQuestion() {
-        showLoading();
-        hideAllPartSections();
-        
-        quizFeedbackDiv.style.display = 'none';
-        quizExplanationDiv.style.display = 'none';
+    let previousMaterialId = null;
 
-        const currentPart = partOrder[currentQuizState.currentPartIndex];
-        const partData = staticQuizData[currentPart];
+    function renderPage() {
+        if (questionsData.length === 0) return;
 
-        if (!partData || partData.length === 0) {
-            currentQuizState.currentPartIndex++;
-            currentQuizState.currentQuestionIndex = 0;
-            if (currentQuizState.currentPartIndex < partOrder.length) {
-                loadCurrentQuestion();
-                return;
-            } else {
-                if (currentQuizState.isReviewMode) {
-                    showReviewModeEnd();
-                    return;
-                } else {
-                    console.warn("所有 Part 已完成，但未觸發最終提交。");
-                    return;
-                }
-            }
-        }
+        const currentQuestion = questionsData[currentQuestionIndex];
+        const part = currentQuestion.part;
+        const currentMaterialId = currentQuestion.passage_id || currentQuestion.material_id;
 
-        const currentMaterialOrQuestion = partData[currentQuizState.currentQuestionIndex];
-        if (!currentMaterialOrQuestion) {
-            currentQuizState.currentPartIndex++;
-            currentQuizState.currentQuestionIndex = 0;
-            if (currentQuizState.currentPartIndex < partOrder.length) {
-                loadCurrentQuestion();
-                return;
-            } else {
-                if (currentQuizState.isReviewMode) {
-                    showReviewModeEnd();
-                    return;
-                } else {
-                    console.warn("所有 Part 已完成，但未觸發最終提交。");
-                    return;
-                }
-            }
-        }
-
-        currentQuizState.currentPart = currentPart;
-        currentQuizState.questionsInCurrentMaterial = currentMaterialOrQuestion.questions || [currentMaterialOrQuestion.question];
-
-        renderCurrentQuestionDisplay(currentPart, currentMaterialOrQuestion);
-        updateProgressDisplay(); // <-- 在這裡更新進度顯示
-        hideLoading();
-        partContent.style.display = 'block';
-
-        updateNavigationButtons();
-
-        if (currentQuizState.isReviewMode) {
-             currentQuizState.questionsInCurrentMaterial.forEach(q => {
-                const questionResultDiv = document.querySelector(`[data-question-id="${q.question_id}"]`);
-                if (questionResultDiv) {
-                    const userAnswer = currentQuizState.selectedAnswers[q.question_id];
-                    const isCorrect = (userAnswer === q.is_correct);
-
-                    const optionsContainer = questionResultDiv.querySelector('.options-container');
-                    optionsContainer.querySelectorAll('button').forEach(btn => {
-                        btn.disabled = true;
-                        btn.style.cursor = 'default';
-                        if (btn.dataset.option === q.is_correct) {
-                            btn.classList.add('correct');
-                        } else if (btn.dataset.option === userAnswer && !isCorrect) {
-                            btn.classList.add('incorrect');
-                        }
-                    });
-
-                    if (q.explanation) {
-                        let explanationEl = questionResultDiv.querySelector('.question-explanation');
-                        if (!explanationEl) {
-                            explanationEl = document.createElement('div');
-                            explanationEl.classList.add('question-explanation');
-                            questionResultDiv.appendChild(explanationEl);
-                        }
-                        explanationEl.innerHTML = `<strong>解釋：</strong> ${q.explanation}`;
-                        explanationEl.style.display = 'block';
-                    }
-                }
-            });
-        }
-    }
-
-    // === 渲染題目到頁面 ===
-    function renderCurrentQuestionDisplay(part, data) {
-        const currentPartSection = partSections[part];
-        if (!currentPartSection) return;
-
-        hideAllPartSections();
-        currentPartSection.style.display = 'block';
-
-        document.querySelectorAll('.options-container button').forEach(btn => {
-            btn.classList.remove('selected', 'correct', 'incorrect');
-            btn.disabled = currentQuizState.isReviewMode;
-            btn.style.cursor = currentQuizState.isReviewMode ? 'default' : 'pointer';
-        });
-        document.querySelectorAll('.question-explanation').forEach(el => el.style.display = 'none');
-        
-        if (part === '2') {
-            const material = data.material;
-            const question = data.question;
-            if (part2AudioPlayer) part2AudioPlayer.src = material.audio_url || '';
-            if (part2PlayAudioBtn) part2PlayAudioBtn.disabled = !part2AudioPlayer.src;
-            if (part2QuestionText) part2QuestionText.textContent = question.question_text;
-            if (part2OptionsContainer) renderOptions(part2OptionsContainer, question.options, question.question_id);
-        } else if (part === '3') {
-            const material = data.material;
-            const questions = data.questions;
-            if (part3AudioPlayer) part3AudioPlayer.src = material.audio_url || '';
-            if (part3PlayAudioBtn) part3PlayAudioBtn.disabled = !part3AudioPlayer.src;
-            if (part3TranscriptContainer) part3TranscriptContainer.innerHTML = material.transcript ? `<p>${material.transcript.replace(/\n/g, '<br>')}</p>` : '';
-            if (part3QuestionsList) renderMultiQuestions(part3QuestionsList, questions);
-        } else if (part === '5') {
-            const question = data.question;
-            if (part5QuestionText) part5QuestionText.textContent = question.question_text;
-            if (part5OptionsContainer) renderOptions(part5OptionsContainer, question.options, question.question_id);
-        } else if (part === '6') {
-            const material = data.material;
-            const questions = data.questions;
-            if (part6PassageContainer) part6PassageContainer.textContent = material.passage_text;
-            if (part6QuestionsList) renderMultiQuestions(part6QuestionsList, questions);
-        } else if (part === '7') {
-            const material = data.material;
-            const questions = data.questions;
-            if (part7PassageContainer) part7PassageContainer.textContent = material.passage_text;
-            if (part7QuestionsList) renderMultiQuestions(part7QuestionsList, questions);
-        }
-
-        if (!currentQuizState.isReviewMode) {
-            currentQuizState.questionsInCurrentMaterial.forEach(q => {
-                if (currentQuizState.selectedAnswers[q.question_id]) {
-                    const prevSelectedOption = currentQuizState.selectedAnswers[q.question_id];
-                    const targetOptionsContainer = document.querySelector(`[data-question-id="${q.question_id}"] .options-container`) ||
-                                                   partSections[part]?.querySelector(`[data-question-id="${q.question_id}"] button`)?.closest('.options-container');
-                    const prevSelectedBtn = targetOptionsContainer?.querySelector(`button[data-option="${prevSelectedOption}"]`);
-                    if (prevSelectedBtn) {
-                        prevSelectedBtn.classList.add('selected');
-                    }
-                }
-            });
-        }
-    }
-
-    // === 通用渲染選項函數 ===
-    function renderOptions(container, options, questionId = null) {
-        container.innerHTML = '';
-        for (const key of ['A', 'B', 'C', 'D']) {
-            const optionText = options[key];
-            if (optionText) {
-                const button = document.createElement('button');
-                button.textContent = `${key}: ${optionText}`;
-                button.dataset.option = key;
-                button.dataset.questionId = questionId;
-                
-                if (!currentQuizState.quizSubmitted && !currentQuizState.isReviewMode) {
-                    button.addEventListener('click', (e) => selectOption(e.target, key, questionId));
-                } else {
-                    button.disabled = true;
-                    button.style.cursor = 'default';
-                }
-                container.appendChild(button);
-            }
-        }
-    }
-
-    // === 渲染多個問題 (Part 3, 6, 7) ===
-    function renderMultiQuestions(container, questions) {
-        container.innerHTML = '';
-        questions.forEach((q, index) => {
-            const qDiv = document.createElement('div');
-            qDiv.classList.add('sub-question-container');
-            qDiv.setAttribute('data-question-id', q.question_id);
-            qDiv.innerHTML = `
-                <p class="question-text">Q${index + 1}. ${q.question_text}</p>
-                <div class="options-container">
-                </div>
-                <div class="question-explanation" style="display: none;"></div>
-            `;
-            container.appendChild(qDiv);
-            renderOptions(qDiv.querySelector('.options-container'), q.options, q.question_id);
-        });
-    }
-
-    // === 選擇選項的邏輯 ===
-    function selectOption(clickedButton, optionKey, questionId) {
-        if (currentQuizState.quizSubmitted || currentQuizState.isReviewMode) {
+        if (currentMaterialId && currentMaterialId === previousMaterialId) {
+            renderQuestion(currentQuestion);
             return;
         }
-        const parentOptionsContainer = clickedButton.closest('.options-container');
-        parentOptionsContainer.querySelectorAll('button').forEach(btn => {
-            btn.classList.remove('selected');
-        });
-        clickedButton.classList.add('selected');
 
-        currentQuizState.selectedAnswers[questionId] = optionKey;
-    }
+        let partName = '';
+        if (part === 2) {
+            partName = '應答問題';
+        } else if (part === 3) {
+            partName = '簡短對話';
+        } else if (part === 5) {
+            partName = '句子填空';
+        } else if (part === 6) {
+            partName = '段落填空';
+        } else if (part === 7) {
+            partName = '單/雙篇文章';
+        }
+        // 只更新 test-title，不更新 header 標題
+        testTitleEl.textContent = `${partName}`;
 
-    // === 進度顯示更新函數 (重點修改部分) ===
-    function updateProgressDisplay() {
-        const currentPartNumber = partOrder[currentQuizState.currentPartIndex]; // 雖然不顯示，但這個變數依然有用
-        const currentQuestionGroupNumber = currentQuizState.currentQuestionIndex + 1; // 題組是從1開始計數
-        const totalQuestionGroupsInCurrentPart = staticQuizData[currentPartNumber].length;
+        passageInfoEl.innerHTML = '';
+        passageBoxEl.innerHTML = '';
+        passageBoxEl.style.display = 'none';
 
-        currentQuestionCountSpan.textContent = `題目: ${currentQuestionGroupNumber}/${totalQuestionGroupsInCurrentPart}`;
-    }
-
-    // === 導航按鈕更新邏輯 ===
-    function updateNavigationButtons() {
-        const isLastPart = currentQuizState.currentPartIndex === partOrder.length - 1;
-        const currentPartData = staticQuizData[partOrder[currentQuizState.currentPartIndex]];
-        const isLastMaterialInCurrentPart = currentPartData ? currentQuizState.currentQuestionIndex === currentPartData.length - 1 : true;
-
-        if (currentQuizState.isReviewMode) {
-            // 查看模式下的按鈕顯示
-            prevQuestionBtn.style.display = 'block';
-            nextQuestionBtn.style.display = 'block';
-            submitQuizBtn.style.display = 'none';
-            reviewAnswersBtn.style.display = 'none';
-            returnToMenuBtn.style.display = 'none';
-
-            if (isLastPart && isLastMaterialInCurrentPart) {
-                nextQuestionBtn.style.display = 'none';
-                endReviewBtn.style.display = 'block'; // 顯示結束查看按鈕
-            } else {
-                endReviewBtn.style.display = 'none';
-            }
-
-            if (currentQuizState.currentPartIndex === 0 && currentQuizState.currentQuestionIndex === 0) {
-                prevQuestionBtn.style.display = 'none';
-            }
-
-        } else if (currentQuizState.quizSubmitted) {
-            // 測驗已提交（總分頁面）
-            prevQuestionBtn.style.display = 'none';
-            nextQuestionBtn.style.display = 'none';
-            submitQuizBtn.style.display = 'none';
-            reviewAnswersBtn.style.display = 'block'; // 顯示查看正解按鈕
-            returnToMenuBtn.style.display = 'block'; // 顯示返回菜單按鈕
-            endReviewBtn.style.display = 'none';
-        } else {
-            // 答題模式下的按鈕顯示
-            prevQuestionBtn.style.display = (currentQuizState.currentPartIndex === 0 && currentQuizState.currentQuestionIndex === 0) ? 'none' : 'block';
+        if (part === 2 || part === 3) {
+            passageBoxEl.style.display = 'block';
+            passageBoxEl.innerHTML = '<h3>對話音檔</h3>';
+            audioPlayer.src = currentQuestion.audio_url || '';
+            audioPlayer.load();
+            passageBoxEl.appendChild(audioPlayer);
+            audioPlayer.play();
             
-            if (isLastPart && isLastMaterialInCurrentPart) {
-                nextQuestionBtn.style.display = 'none';
-                submitQuizBtn.style.display = 'block';
-                submitQuizBtn.textContent = '完成測驗並查看總分';
-            } else {
-                nextQuestionBtn.style.display = 'block';
-                submitQuizBtn.style.display = 'none';
+            if (part === 3 && currentQuestion.material) {
+                passageInfoEl.innerHTML = `
+                    <div>主題: ${currentQuestion.material.topic || ''}</div>
+                    <div>口音: ${currentQuestion.material.accent || ''}｜聽力級別: ${currentQuestion.material.listening_level || ''}</div>
+                `;
             }
-            reviewAnswersBtn.style.display = 'none';
-            returnToMenuBtn.style.display = 'none';
-            endReviewBtn.style.display = 'none';
+        } else if (part === 6 || part === 7) {
+            passageBoxEl.style.display = 'block';
+            if (currentQuestion.passage) {
+                passageInfoEl.innerHTML = `
+                    <div>類別: ${currentQuestion.passage.topic || ''}</div>
+                    <div>字數: ${currentQuestion.passage.word_count || ''}｜閱讀級別: ${currentQuestion.passage.reading_level || ''}</div>
+                `;
+                passageBoxEl.innerHTML = `
+                    <h3 id="passage-title">${currentQuestion.passage_title || ''}</h3>
+                    <p id="passage-content">${currentQuestion.passage_content || ''}</p>
+                `;
+            }
+        } else {
+            passageBoxEl.style.display = 'none';
+        }
+        
+        previousMaterialId = currentMaterialId;
+        renderQuestion(currentQuestion);
+    }
+    
+    function renderQuestion(question) {
+    const difficultyBadge = document.getElementById('difficulty-badge');
+    const questionEl = document.getElementById('question');
+    const part = question.part;
+    
+    difficultyBadge.textContent = question.difficulty_level ? `Level ${question.difficulty_level}` : 'UNKNOWN';
+
+    if (part === 2) {
+        questionEl.textContent = `Q${currentQuestionIndex + 1}`;
+    } else {
+        questionEl.textContent = `Q${currentQuestionIndex + 1}. ${question.question_text || ''}`;
+    }
+    
+    optionsContainer.innerHTML = '';
+    optionsContainer.className = `quiz-options ${part === 2 ? 'part2-style' : ''}`;
+    const optionsToDisplay = (part === 2) ? ['A', 'B', 'C'] : ['A', 'B', 'C', 'D'];
+    
+    optionsToDisplay.forEach(optionKey => {
+        const optionTextKey = `option_${optionKey.toLowerCase()}_text`;
+        const optionText = question[optionTextKey] || '';
+        
+        const li = document.createElement('li');
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        
+        input.type = 'radio';
+        input.name = `q-${question.question_id}`; // 使用問題ID來確保每個問題的選項是獨立的
+        input.value = optionKey;
+        
+        const span = document.createElement('span');
+        span.textContent = (part === 2) ? optionKey : `${optionKey}. ${optionText}`;
+
+        label.appendChild(input);
+        label.appendChild(span);
+        li.appendChild(label);
+        
+        const questionId = question.question_id;
+        if (userAnswers[questionId] === optionKey) {
+            // 如果之前有選，標記 input 為 checked
+            input.checked = true;
+            // 並為 label 添加 selected 樣式
+            label.classList.add('selected');
+        }
+        
+        // 監聽 input 的 'change' 事件
+        input.addEventListener('change', () => {
+            // 先移除同一個問題下所有 label 的 selected 樣式
+            document.querySelectorAll(`input[name="q-${question.question_id}"]`).forEach(el => {
+                el.parentElement.classList.remove('selected');
+            });
+            // 為當前被選中的 input 的 parent label 添加 selected 樣式
+            input.parentElement.classList.add('selected');
+            // 保存答案
+            saveCurrentAnswer();
+        });
+
+        optionsContainer.appendChild(li);
+    });
+    
+    updateCounter();
+    updateNavigationButtons();
+}
+
+    function saveCurrentAnswer() {
+    const questionId = questionsData[currentQuestionIndex].question_id;
+    const selectedRadio = document.querySelector(`input[name="q-${questionId}"]:checked`);
+    if (selectedRadio) {
+        userAnswers[questionId] = selectedRadio.value;
+    } else {
+        delete userAnswers[questionId]; // 如果使用者取消選擇，則清除答案
+    }
+}
+
+    function nextQuestion() {
+        saveCurrentAnswer();
+        if (currentQuestionIndex < questionsData.length - 1) {
+            currentQuestionIndex++;
+            renderPage();
+        } else {
+            submitQuiz();
         }
     }
 
-
-    // === 導航按鈕事件監聽 ===
-    nextQuestionBtn.addEventListener('click', () => {
-        if (currentQuizState.isReviewMode) {
-            currentQuizState.currentQuestionIndex++;
-            loadCurrentQuestion();
-            return;
+    function previousQuestion() {
+        saveCurrentAnswer();
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            renderPage();
         }
+    }
+    
+    prevBtn.removeEventListener('click', previousQuestion);
+    nextBtn.removeEventListener('click', nextQuestion);
+    nextBtn.removeEventListener('click', submitQuiz);
 
-        let allCurrentMaterialAnswered = true;
-        for (const q of currentQuizState.questionsInCurrentMaterial) {
-            if (!currentQuizState.selectedAnswers[q.question_id]) {
-                allCurrentMaterialAnswered = false;
-                break;
-            }
+    prevBtn.addEventListener('click', previousQuestion);
+    nextBtn.addEventListener('click', nextQuestion);
+
+
+    function updateNavigationButtons() {
+        prevBtn.style.visibility = currentQuestionIndex === 0 ? 'hidden' : 'visible';
+        
+        nextBtn.removeEventListener('click', nextQuestion);
+        nextBtn.removeEventListener('click', submitQuiz);
+
+        if (currentQuestionIndex === questionsData.length - 1) {
+            nextBtn.innerHTML = '<i class="fas fa-check"></i> 完成測驗';
+            nextBtn.className = 'nav-btn submit-btn';
+            nextBtn.addEventListener('click', submitQuiz);
+        } else {
+            nextBtn.innerHTML = '下一題 <i class="fas fa-chevron-right"></i>';
+            nextBtn.className = 'nav-btn';
+            nextBtn.addEventListener('click', nextQuestion);
         }
+    }
 
-        if (!allCurrentMaterialAnswered) {
-            alert('請先作答當前頁面的所有題目，才能跳到下一題！');
-            return;
-        }
+    function updateCounter() {
+        document.getElementById('current-question').textContent = currentQuestionIndex + 1;
+    }
 
-        currentQuizState.currentQuestionIndex++;
-        loadCurrentQuestion();
-    });
-
-    prevQuestionBtn.addEventListener('click', () => {
-        if (currentQuizState.isReviewMode) {
-            if (currentQuizState.currentQuestionIndex > 0) {
-                currentQuizState.currentQuestionIndex--;
-                loadCurrentQuestion();
-            } else if (currentQuizState.currentPartIndex > 0) {
-                currentQuizState.currentPartIndex--;
-                const prevPart = partOrder[currentQuizState.currentPartIndex];
-                currentQuizState.currentQuestionIndex = staticQuizData[prevPart].length - 1; // 跳到上一 Part 的最後一個題組
-                loadCurrentQuestion();
-            }
-            return;
-        }
-
-        alert('答題模式下無法返回上一題。');
-    });
-
-    // === 提交測驗按鈕事件監聽 (補齊部分) ===
-    submitQuizBtn.addEventListener('click', () => {
-        if (currentQuizState.quizSubmitted) {
-            alert('測驗已提交，請勿重複操作。');
-            return;
-        }
-
-        const confirmSubmit = confirm('您確定要提交測驗嗎？提交後將無法修改答案！');
-        if (!confirmSubmit) {
-            return;
-        }
-
-        // 在提交前，再次檢查所有題目是否都已作答 (可選，但推薦)
-        let allQuestionsAnswered = true;
-        let answeredCount = 0;
-        let totalQuestionsForSubmission = 0;
-
-        for (const part of partOrder) {
-            const partData = staticQuizData[part];
-            partData.forEach(item => {
-                const questions = item.questions || [item.question];
-                questions.forEach(q => {
-                    totalQuestionsForSubmission++;
-                    if (currentQuizState.selectedAnswers[q.question_id]) {
-                        answeredCount++;
-                    }
-                });
-            });
-        }
-
-        if (answeredCount < totalQuestionsForSubmission) {
-            const unansweredCount = totalQuestionsForSubmission - answeredCount;
-            const proceedAnyway = confirm(`您還有 ${unansweredCount} 題未作答。確定要提交嗎？`);
-            if (!proceedAnyway) {
+    function submitQuiz() {
+        saveCurrentAnswer();
+        
+        const unansweredCount = questionsData.length - Object.keys(userAnswers).length;
+        if (unansweredCount > 0) {
+            if (!confirm(`你還有 ${unansweredCount} 題未作答，確定要提交測驗嗎？`)) {
                 return;
             }
         }
 
-        currentQuizState.quizSubmitted = true;
-        calculateScore();
-        showFinalQuizResults();
-    });
+        nextBtn.disabled = true;
+        nextBtn.textContent = '正在提交...';
 
-    // === 計算分數 ===
-    function calculateScore() {
-        let correctAnswers = 0;
-        for (const part of partOrder) {
-            const partData = staticQuizData[part];
-            partData.forEach(item => {
-                const questions = item.questions || [item.question];
-                questions.forEach(q => {
-                    if (currentQuizState.selectedAnswers[q.question_id] === q.is_correct) {
-                        correctAnswers++;
-                    }
-                });
-            });
-        }
-        currentQuizState.totalCorrectAnswers = correctAnswers;
-    }
-
-    // === 顯示最終測驗結果 ===
-    function showFinalQuizResults() {
-        partContent.style.display = 'none'; // 隱藏測驗內容
-        quizProgress.style.display = 'none'; // 隱藏進度條
-        quizFeedbackDiv.style.display = 'none'; // 隱藏單題反饋
-        quizExplanationDiv.style.display = 'none'; // 隱藏單題解釋
-
-        quizResultDisplay.style.display = 'block'; // 顯示結果區域
-
-        correctCountSpan.textContent = currentQuizState.totalCorrectAnswers;
-        totalQuestionsAnsweredSpan.textContent = currentQuizState.totalQuestions; // 顯示總題目數
-
-        const percentage = (currentQuizState.totalCorrectAnswers / currentQuizState.totalQuestions) * 100;
-        scorePercentageSpan.textContent = `${percentage.toFixed(0)}%`;
-        scoreProgressBar.style.width = `${percentage}%`;
-
-        // 顯示結果頁面特有的按鈕
-        updateNavigationButtons(); // 這裡會根據 quizSubmitted 狀態來顯示 reviewAnswersBtn 和 returnToMenuBtn
-    }
-
-    // === 進入查看正解模式 ===
-    reviewAnswersBtn.addEventListener('click', () => {
-        currentQuizState.isReviewMode = true;
-        currentQuizState.quizSubmitted = false; // 退出提交狀態
-        currentQuizState.currentPartIndex = 0; // 重置到第一 Part
-        currentQuizState.currentQuestionIndex = 0; // 重置到第一題組
-
-        quizResultDisplay.style.display = 'none'; // 隱藏結果顯示
-        quizProgress.style.display = 'block'; // 重新顯示進度條
-
-        loadCurrentQuestion(); // 重新載入第一道題目以開始查看
-    });
-
-    // === 返回測驗列表 (從結果頁或查看模式結束後) ===
-    returnToMenuBtn.addEventListener('click', () => {
-        window.location.href = '{% url "test" %}'; // 跳轉回你的測驗列表頁面
-    });
-
-    endReviewBtn.addEventListener('click', () => {
-        currentQuizState.isReviewMode = false; // 退出查看模式
-        currentQuizState.quizSubmitted = true; // 設置為已提交狀態，以便回到結果頁面
-        currentQuizState.currentPartIndex = 0; // 重置索引，以便再次顯示總結
-        currentQuizState.currentQuestionIndex = 0;
-
-        showFinalQuizResults(); // 回到總成績頁面
-    });
-
-    // === 輔助函數 ===
-    function showLoading() {
-        quizLoadingMessage.style.display = 'block';
-        partContent.style.display = 'none';
-    }
-
-    function hideLoading() {
-        quizLoadingMessage.style.display = 'none';
-        partContent.style.display = 'block';
-    }
-
-    function hideAllPartSections() {
-        for (const part in partSections) {
-            if (partSections.hasOwnProperty(part)) {
-                partSections[part].style.display = 'none';
-            }
-        }
-    }
-
-    // 播放音頻事件監聽 (Part 2)
-    if (part2PlayAudioBtn) {
-        part2PlayAudioBtn.addEventListener('click', () => {
-            if (part2AudioPlayer.paused) {
-                part2AudioPlayer.play();
-                part2PlayAudioBtn.innerHTML = '<i class="fas fa-pause"></i> 暫停音頻';
+        fetch('/api/submit_test_answer/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                session_id: sessionId,
+                answers: userAnswers,
+                test_type: 'mixed',
+                total_questions: questionsData.length
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                sessionStorage.setItem('test_result_data', JSON.stringify(data.data));
+                window.location.href ='/test_result/';
             } else {
-                part2AudioPlayer.pause();
-                part2PlayAudioBtn.innerHTML = '<i class="fas fa-play"></i> 播放音頻';
+                alert('提交失敗：' + (data.error || '未知錯誤'));
+                nextBtn.disabled = false;
+                nextBtn.textContent = '完成測驗';
             }
-        });
-        part2AudioPlayer.addEventListener('ended', () => {
-            part2PlayAudioBtn.innerHTML = '<i class="fas fa-play"></i> 播放音頻';
+        })
+        .catch(() => {
+            alert('提交過程中發生錯誤，請稍後重試');
+            nextBtn.disabled = false;
+            nextBtn.textContent = '完成測驗';
         });
     }
 
-    // 播放音頻事件監聽 (Part 3)
-    if (part3PlayAudioBtn) {
-        part3PlayAudioBtn.addEventListener('click', () => {
-            if (part3AudioPlayer.paused) {
-                part3AudioPlayer.play();
-                part3PlayAudioBtn.innerHTML = '<i class="fas fa-pause"></i> 暫停音頻';
-            } else {
-                part3AudioPlayer.pause();
-                part3PlayAudioBtn.innerHTML = '<i class="fas fa-play"></i> 播放音頻';
-            }
-        });
-        part3AudioPlayer.addEventListener('ended', () => {
-            part3PlayAudioBtn.innerHTML = '<i class="fas fa-play"></i> 播放音頻';
-        });
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        return parts.length === 2 ? parts.pop().split(';').shift() : '';
+    }
+
+    if (questionsData.length > 0) {
+        renderPage();
     }
 });
-    </script>
-    <script src="{% static 'js/menu.js' %}"></script> {# 如果有菜單JS #}
+</script>
 </body>
 </html>

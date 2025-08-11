@@ -19,6 +19,9 @@ from django.contrib import admin
 from django.urls import path
 from toeic import views
 from django.contrib.auth.views import LogoutView
+from django.conf import settings
+from django.conf.urls.static import static
+
 urlpatterns = [
     path("", views.home, name="home"),
     path("admin/", admin.site.urls),
@@ -32,7 +35,7 @@ urlpatterns = [
     path('record/', views.record, name='record'),
     path('api/submit_test_answer/', views.submit_test_answer, name='submit_test_answer'),
     path('test_result/', views.test_result, name='test_result'),
-    path('all_test/', views.all_test_view, name='all_test'),
+    path('all_test/', views.all_test, name='all_test'),
     path('part2/', views.part2, name='part2'), 
     path('part3/', views.part3, name='part3'),
     path('part5/', views.part5, name='part5'), 
@@ -40,6 +43,6 @@ urlpatterns = [
     path('part7/', views.part7, name='part7'), 
     # path('exam/part/<int:part_number>/', views.exam_part_view, name='exam_part_view'),
     path('api/update_exam_status/', views.update_exam_status, name='update_exam_status'),
-]
+]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

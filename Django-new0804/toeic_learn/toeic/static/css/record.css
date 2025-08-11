@@ -10,7 +10,7 @@ body {
     color: #555;
 }
 .container {
-    max-width: 900px;
+    max-width: 1000px;
     margin: 20px auto;
     padding: 50px;
     background: white;
@@ -83,3 +83,166 @@ th {
 #backButton:hover {
     background-color: #0056b3;
 }
+ /* 保持你的原始 CSS 樣式 */
+        * { box-sizing: border-box; }
+        body { overflow-x: hidden; }
+        img { max-width: 100%; height: auto; }
+        iframe { max-width: 100%; width: 100%; }
+        
+        .table-standard {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .table-standard th,
+        .table-standard td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        .table-standard th {
+            background-color: #007BFF;
+            color: white;
+            font-weight: bold;
+        }
+        .table-standard tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .table-standard tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .category-analysis-section, .part-analysis-section, .test-history, .personalized-advice-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .category-analysis-section h3, .part-analysis-section h3, .test-history h3, .personalized-advice-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .category-analysis-section h3 i, .part-analysis-section h3 i, .test-history h3 i, .personalized-advice-section h3 i {
+            margin-right: 10px;
+        }
+        .personalized-advice-section h3 {
+            color: #e65100;
+            border-bottom: 2px solid #ffe0b2;
+        }
+        .personalized-advice-section h3 i {
+            color: #fbc02d;
+        }
+        .personalized-advice-section ul {
+            padding-left: 20px;
+            margin: 0;
+            list-style: none; /* 移除預設的項目符號 */
+        }
+        .personalized-advice-section li {
+            margin-bottom: 10px;
+            font-size: 16px;
+            display: flex;
+            align-items: flex-start;
+        }
+        .personalized-advice-section li i {
+            color: #fbc02d;
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        .advice-text {
+            line-height: 1.6;
+        }
+
+        .analysis-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .analysis-item {
+            flex: 1 1 calc(50% - 15px);
+            min-width: 280px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .analysis-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .analysis-item-content {
+            display: flex;
+            flex-direction: column;
+        }
+        .analysis-item-content .title {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #007bff;
+        }
+        .analysis-item-content .details {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .analysis-item .percentage {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 1.2em;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .pagination a {
+            color: #007BFF;
+            padding: 8px 16px;
+            text-decoration: none;
+            transition: background-color .3s, color .3s, border-color .3s;
+            border: 1px solid #007BFF;
+            margin: 0 4px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .pagination a.active {
+            background-color: #007BFF;
+            color: white;
+            border: 1px solid #007BFF;
+        }
+        .pagination a:hover:not(.active) {
+            background-color: #f0f8ff;
+            color: #0056b3;
+            border-color: #0056b3;
+        }
+        .pagination .current {
+            padding: 8px 16px;
+            margin: 0 4px;
+            font-weight: bold;
+        }
+
+        /* 調整圖表容器的樣式 */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* 這裡已調整為 600px */
+            margin: 0 auto;
+        }
+        #part-radar-chart {
+            height: 400px; /* 這裡已調整為 400px */
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                max-width: 100%;
+            }
+            #part-radar-chart {
+                height: 350px; /* 在手機上可以再調小一點 */
+            }
+        }
