@@ -40,7 +40,7 @@ DIFFICULTY_LEVEL_CHOICES = [
 ]
 
 PART_CHOICES = [
-    (None, '不限 Part'), 
+    (0, 'All - 綜合測驗'), 
     (2, 'Part 2 - 應答問題'),
     (3, 'Part 3 - 簡短對話'),
     (5, 'Part 5 - 句子填空'),

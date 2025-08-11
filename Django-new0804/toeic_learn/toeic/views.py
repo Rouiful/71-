@@ -14,6 +14,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.db.models import Count, Q, F, FloatField, ExpressionWrapper
 from django.core.paginator import Paginator
+from django.conf import settings
+import os
 
 # 獲取當前使用的使用者模型
 User = get_user_model()
@@ -155,7 +157,7 @@ def submit_test_answer(request):
         session_id = data.get('session_id')
         answers = data.get('answers')
 
-        if not session_id or not answers:
+        if not session_id or answers is None:
             return JsonResponse({'success': False, 'error': '缺少 session_id 或 answers'})
 
         try:
@@ -169,51 +171,56 @@ def submit_test_answer(request):
         answer_time = timezone.now()
         question_details = []
 
-        # 初始化更細緻的統計
+        # 初始化統計
         total_questions = 0
         correct_total = 0
-        part_analysis = {} 
-        category_analysis = {} 
+        part_analysis = {}
+        category_analysis = {}
 
         transcripts = {}
         part3_material_ids = set()
-        
+
         exam = session.exam
-        exam_questions_queryset = ExamQuestion.objects.filter(exam=exam).select_related('question')
-        question_map = {str(eq.question.question_id): eq.question for eq in exam_questions_queryset}
+        
+        # 關鍵修正：在查詢時加入排序
+        exam_questions_queryset = ExamQuestion.objects.filter(exam=exam).order_by('question_order').select_related('question')
 
-        for qid, selected_option in answers.items():
-            question = question_map.get(qid)
-            if not question:
-                continue
+        answers = answers or {}
 
-            is_correct = (selected_option.lower() == question.is_correct.lower())
+        # 這裡的迴圈會依照 question_order 順序執行
+        for eq in exam_questions_queryset:
+            question = eq.question
+            qid = str(question.question_id)
+            selected_option = answers.get(qid) 
+
+            is_correct = (selected_option and selected_option.lower() == question.is_correct.lower())
 
             answer_text = ''
-            if selected_option.lower() == 'a':
-                answer_text = question.option_a_text
-            elif selected_option.lower() == 'b':
-                answer_text = question.option_b_text
-            elif selected_option.lower() == 'c':
-                answer_text = question.option_c_text
-            elif selected_option.lower() == 'd':
-                answer_text = question.option_d_text
+            if selected_option:
+                if selected_option.lower() == 'a':
+                    answer_text = question.option_a_text
+                elif selected_option.lower() == 'b':
+                    answer_text = question.option_b_text
+                elif selected_option.lower() == 'c':
+                    answer_text = question.option_c_text
+                elif selected_option.lower() == 'd':
+                    answer_text = question.option_d_text
 
-            UserAnswer.objects.create(
-                session=session,
-                question=question,
-                selected_options=selected_option,
-                answer_text=answer_text, 
-                is_correct=is_correct,
-                answer_time=answer_time,
-            )
+                # 儲存用戶答案
+                UserAnswer.objects.create(
+                    session=session,
+                    question=question,
+                    selected_options=selected_option,
+                    answer_text=answer_text,
+                    is_correct=is_correct,
+                    answer_time=answer_time,
+                )
 
-            # 累加總計
+            # 統計累計
             total_questions += 1
             if is_correct:
                 correct_total += 1
 
-            # 累加 Part 統計
             part = f'part{question.part}' if question.part else 'unknown_part'
             if part not in part_analysis:
                 part_analysis[part] = {'total': 0, 'correct': 0}
@@ -221,7 +228,6 @@ def submit_test_answer(request):
             if is_correct:
                 part_analysis[part]['correct'] += 1
 
-            # 累加題目類別統計
             category = question.question_category or 'unknown_category'
             if category not in category_analysis:
                 category_analysis[category] = {'total': 0, 'correct': 0}
@@ -229,7 +235,6 @@ def submit_test_answer(request):
             if is_correct:
                 category_analysis[category]['correct'] += 1
 
-            # 詳解資訊
             options = [
                 {'value': 'a', 'text': question.option_a_text},
                 {'value': 'b', 'text': question.option_b_text},
@@ -237,8 +242,9 @@ def submit_test_answer(request):
                 {'value': 'd', 'text': question.option_d_text},
             ]
 
+            # 關鍵修正：將 question_order 添加到 question_details 中
             question_details.append({
-                'question_id': str(qid),
+                'question_id': qid,
                 'question_text': question.question_text,
                 'user_answer': selected_option,
                 'correct_answer': question.is_correct,
@@ -247,14 +253,14 @@ def submit_test_answer(request):
                 'options': options,
                 'part': part,
                 'category': question.get_question_category_display() if question.question_category else '未分類',
+                'question_order': eq.question_order,  # <-- 新增這行！
             })
-            
-            # 儲存文字稿
+
             if question.material and question.material.transcript:
                 if part == 'part2':
-                    transcripts[str(qid)] = question.material.transcript
+                    transcripts[qid] = question.material.transcript
                 elif part == 'part3' and question.material.material_id not in part3_material_ids:
-                    transcripts[str(qid)] = question.material.transcript
+                    transcripts[qid] = question.material.transcript
                     part3_material_ids.add(question.material.material_id)
 
         def calc_score(correct, total):
@@ -289,7 +295,7 @@ def submit_test_answer(request):
         session.save()
 
         test_type = exam.get_exam_type_display()
-            
+
         response_data = {
             'success': True,
             'data': {
@@ -345,11 +351,93 @@ def test_result(request):
     }
     return render(request, 'result.html', context)
 
-def all_test_view(request):
-    """
-    顯示綜合測驗頁面
-    """
-    return render(request, 'all_test.html')
+@login_required
+def all_test(request):
+    user = request.user
+
+    try:
+        # 修正重點：從所有綜合測驗中隨機選擇一份
+        available_exams = Exam.objects.filter(exam_type='mixed')
+        
+        if not available_exams.exists():
+            return render(request, 'home.html', {'message': '找不到綜合測驗。請執行管理指令以建立。'})
+        
+        # 從所有可用的綜合測驗中隨機選擇一個
+        exam = random.choice(available_exams)
+            
+    except Exception as e:
+        return render(request, 'home.html', {'message': f'發生錯誤：{e}'})
+
+    # ... (後續程式碼不變)
+    # 建立一個新的 ExamSession
+    session = ExamSession.objects.create(
+        exam=exam,
+        user=user,
+        time_limit_enabled=True,
+        start_time=timezone.now(),
+        end_time=timezone.now() + timedelta(minutes=exam.duration_minutes),
+        status='in_progress',
+    )
+    
+    exam_questions = ExamQuestion.objects.filter(exam=exam).select_related('question__passage', 'question__material').order_by('question_order')
+    
+    if not exam_questions.exists():
+        return render(request, 'error_page.html', {'message': '綜合測驗沒有題目。'})
+    
+    questions_data = []
+    
+    for eq in exam_questions:
+        q = eq.question
+        
+        question_dict = {
+            'question_id': str(q.question_id),
+            'part': q.part,
+            'question_text': q.question_text,
+            'option_a_text': q.option_a_text,
+            'option_b_text': q.option_b_text,
+            'option_c_text': q.option_c_text,
+            'option_d_text': q.option_d_text,
+            'difficulty_level': q.difficulty_level,
+            'explanation': q.explanation,
+            'is_correct': q.is_correct,
+            'question_category': q.get_question_category_display()
+        }
+        
+        if q.part in [2, 3] and q.material:
+            audio_url = q.material.audio_url
+            if audio_url and not audio_url.startswith(('http://', 'https://', '/')):
+                audio_url = os.path.join(settings.MEDIA_URL, audio_url)
+            
+            question_dict['audio_url'] = audio_url
+            question_dict['transcript'] = q.material.transcript
+            question_dict['material'] = {
+                'topic': q.material.topic,
+                'accent': q.material.accent,
+                'listening_level': q.material.listening_level,
+            }
+        
+        if q.part in [6, 7] and q.passage:
+            question_dict['passage_title'] = q.passage.title
+            question_dict['passage_content'] = q.passage.content
+            question_dict['passage'] = {
+                'topic': q.passage.topic,
+                'word_count': q.passage.word_count,
+                'reading_level': q.passage.reading_level,
+            }
+
+        questions_data.append(question_dict)
+    
+    questions_json = json.dumps(questions_data)
+    
+    context = {
+        'exam_title': exam.title,
+        'exam_id': str(exam.exam_id),
+        'session_id': str(session.session_id),
+        'questions_json': questions_json,
+        'duration_minutes': exam.duration_minutes,
+    }
+    
+    return render(request, 'all_test.html', context)
 
 def part2(request):
     part_number = 2
@@ -366,16 +454,17 @@ def part2(request):
     exam_questions = ExamQuestion.objects.filter(
         exam=exam,
         question__part=part_number
-    ).select_related('question').order_by('question_order')
+    ).select_related('question', 'question__material').order_by('question_order')
 
-    # 以第一個有 material 的題目取出該段對話（ListeningMaterial）
-    material = None
     questions_data = []
 
     for eq in exam_questions:
         q = eq.question
-        if q.material:
-            material = q.material
+        # 確認音檔完整路徑
+        audio_url = None
+        if q.material and q.material.audio_url:
+            audio_url = settings.MEDIA_URL + q.material.audio_url
+
         questions_data.append({
             'question_id': str(q.question_id),
             'question_text': q.question_text,
@@ -383,19 +472,12 @@ def part2(request):
             'option_b_text': q.option_b_text,
             'option_c_text': q.option_c_text,
             'difficulty_level': q.difficulty_level,
-            'transcript': q.material.transcript if q.material else None,  # 從 ListeningMaterial 模型獲取 transcript
+            'transcript': q.material.transcript if q.material else None,
+            'audio_url': audio_url,  # 動態帶入每題的音檔 URL
         })
 
-    if not material:
+    if not questions_data:
         return render(request, 'part2.html', {'error': '考卷中未找到對應音檔'})
-
-    material_data = {
-        'audio_url': material.audio_url,
-        'transcript': material.transcript,
-        'topic': material.topic,
-        'accent': material.accent,
-        'listening_level': material.listening_level,
-    }
 
     questions_json = json.dumps(questions_data)
 
@@ -414,7 +496,6 @@ def part2(request):
     )
 
     context = {
-        'material': material_data,
         'questions_json': questions_json,
         'exam_id': exam.exam_id,
         'session_id': session.session_id,
@@ -465,8 +546,13 @@ def part3(request):
     if not material:
         return render(request, 'part3.html', {'error': '考卷中未找到對應音檔'})
 
+    # 處理音檔 URL：如果不是以 http 或 / 開頭，就補上 MEDIA_URL
+    audio_url = material.audio_url
+    if audio_url and not audio_url.startswith(('http://', 'https://', '/')):
+        audio_url = os.path.join(settings.MEDIA_URL, audio_url)
+
     material_data = {
-        'audio_url': material.audio_url,
+        'audio_url': audio_url,
         'transcript': material.transcript,
         'topic': material.topic,
         'accent': material.accent,
@@ -496,7 +582,6 @@ def part3(request):
         'session_id': session.session_id,
     }
     return render(request, 'part3.html', context)
-
 
 def part5(request):
     part_number = 5

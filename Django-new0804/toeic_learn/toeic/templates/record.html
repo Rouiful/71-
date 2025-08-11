@@ -8,152 +8,6 @@
     <link rel="stylesheet" href="{% static 'css/common.css' %}">
     <link rel="stylesheet" href="{% static 'css/record.css' %}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <style>
-        /* 保持你的原始 CSS 樣式 */
-        * { box-sizing: border-box; }
-        body { overflow-x: hidden; }
-        img { max-width: 100%; height: auto; }
-        iframe { max-width: 100%; width: 100%; }
-        
-        .table-standard {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        .table-standard th,
-        .table-standard td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-        }
-        .table-standard th {
-            background-color: #007BFF;
-            color: white;
-            font-weight: bold;
-        }
-        .table-standard tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .table-standard tr:hover {
-            background-color: #f1f1f1;
-        }
-
-        .category-analysis-section, .part-analysis-section, .test-history, .personalized-advice-section {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .category-analysis-section h3, .part-analysis-section h3, .test-history h3, .personalized-advice-section h3 {
-            color: #333;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-            display: flex;
-            align-items: center;
-        }
-        .category-analysis-section h3 i, .part-analysis-section h3 i, .test-history h3 i, .personalized-advice-section h3 i {
-            margin-right: 10px;
-        }
-        .personalized-advice-section h3 {
-            color: #e65100;
-            border-bottom: 2px solid #ffe0b2;
-        }
-        .personalized-advice-section h3 i {
-            color: #fbc02d;
-        }
-        .personalized-advice-section ul {
-            padding-left: 20px;
-            margin: 0;
-            list-style: none; /* 移除預設的項目符號 */
-        }
-        .personalized-advice-section li {
-            margin-bottom: 10px;
-            font-size: 16px;
-            display: flex;
-            align-items: flex-start;
-        }
-        .personalized-advice-section li i {
-            color: #fbc02d;
-            margin-right: 10px;
-            font-size: 1.2em;
-        }
-        .advice-text {
-            line-height: 1.6;
-        }
-
-        .analysis-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        .analysis-item {
-            flex: 1 1 calc(50% - 15px); /* 讓項目在寬螢幕時一行顯示2個 */
-            min-width: 280px; /* 最小寬度，防止在小螢幕下太擠 */
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .analysis-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .analysis-item-content {
-            display: flex;
-            flex-direction: column;
-        }
-        .analysis-item-content .title {
-            font-weight: bold;
-            font-size: 1.1em;
-            color: #007bff;
-        }
-        .analysis-item-content .details {
-            font-size: 0.9em;
-            color: #6c757d;
-            margin-top: 5px;
-        }
-        .analysis-item .percentage {
-            font-weight: bold;
-            color: #007bff;
-            font-size: 1.2em;
-        }
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-        }
-        .pagination a {
-            color: #007BFF;
-            padding: 8px 16px;
-            text-decoration: none;
-            transition: background-color .3s, color .3s, border-color .3s;
-            border: 1px solid #007BFF;
-            margin: 0 4px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .pagination a.active {
-            background-color: #007BFF;
-            color: white;
-            border: 1px solid #007BFF;
-        }
-        .pagination a:hover:not(.active) {
-            background-color: #f0f8ff;
-            color: #0056b3;
-            border-color: #0056b3;
-        }
-        .pagination .current {
-            padding: 8px 16px;
-            margin: 0 4px;
-            font-weight: bold;
-        }
-    </style>
 </head>
 <body>
     <div class="header">
@@ -190,6 +44,9 @@
         <div class="part-analysis-section">
             <h3><i class="fas fa-list-ol"></i> Part 作答分析</h3>
             {% if part_performance %}
+            <div class="chart-container" style="margin-top: 30px;">
+                    <canvas id="part-radar-chart"></canvas>
+                </div>
                 <div class="analysis-list">
                     {% for part, data in part_performance.items %}
                         <div class="analysis-item">
@@ -201,6 +58,10 @@
                         </div>
                     {% endfor %}
                 </div>
+
+                {{ part_performance|json_script:"part-performance-data" }}
+
+                
             {% else %}
                 <p>尚無 Part 作答紀錄。</p>
             {% endif %}
@@ -285,6 +146,8 @@
 
     <a href="{% url 'home' %}" id="backButton">回到首頁</a>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         function bindPaginationEvents() {
             const paginationLinks = document.querySelectorAll('.pagination a');
@@ -312,7 +175,77 @@
             });
         }
         
-        document.addEventListener('DOMContentLoaded', bindPaginationEvents);
+        document.addEventListener('DOMContentLoaded', function() {
+            bindPaginationEvents();
+
+            const scriptTag = document.getElementById('part-performance-data');
+
+            if (scriptTag) {
+                const partPerformanceData = JSON.parse(scriptTag.textContent);
+
+                if (Object.keys(partPerformanceData).length > 0) {
+                    const labels = [];
+                    const dataPoints = [];
+
+                    for (const key in partPerformanceData) {
+                        if (partPerformanceData.hasOwnProperty(key)) {
+                            labels.push(partPerformanceData[key].display_name);
+                            dataPoints.push(partPerformanceData[key].percentage);
+                        }
+                    }
+                    
+                    const ctx = document.getElementById('part-radar-chart').getContext('2d');
+                    
+                    new Chart(ctx, {
+                        type: 'radar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: '作答正確率 (%)',
+                                data: dataPoints,
+                                backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                                borderColor: 'rgba(0, 123, 255, 1)',
+                                borderWidth: 2,
+                                pointBackgroundColor: 'rgba(0, 123, 255, 1)',
+                                pointBorderColor: '#fff',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: 'rgba(0, 123, 255, 1)'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                title: {
+                                    display: true,
+                                    text: '各 Part 表現分析雷達圖',
+                                    font: {
+                                        size: 16
+                                    }
+                                }
+                            },
+                            scales: {
+                                r: {
+                                    angleLines: {
+                                        display: false
+                                    },
+                                    suggestedMin: 0,
+                                    suggestedMax: 100,
+                                    pointLabels: {
+                                        font: {
+                                            size: 12
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        });
     </script>
     <footer class="footer">
         <div class="footer-container">
