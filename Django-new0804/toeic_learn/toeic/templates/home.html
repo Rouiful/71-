@@ -7,66 +7,23 @@
     <title>TOEIC學習平台</title>
     <link rel="stylesheet" href="{% static 'css/common.css' %}">
     <link rel="stylesheet" href="{% static 'css/home.css' %}">
-    <!-- 引入icon -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <!-- <script src="{% static 'script/all.js' %}"></script> -->
-
-    <!-- ⭐ 防止撐寬 -->
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-        body {
-            overflow-x: hidden;
-        }
-        img {
-            max-width: 100%;
-            height: auto;
-        }
-        iframe {
-            max-width: 100%;
-            width: 100%;
-        }
-        .messages {
-    list-style: none;
-    padding: 0;
-    margin: 20px auto;
-    max-width: 600px;
-    text-align: center;
-}
-.messages li {
-    background: #e0f7fa;
-    color: #00796b;
-    border: 1px solid #b2ebf2;
-    border-radius: 6px;
-    padding: 10px 16px;
-    margin-bottom: 10px;
-    font-size: 1.1em;
-    display: inline-block;
-}
-.messages li.success { background: #e8f5e9; color: #388e3c; border-color: #c8e6c9; }
-.messages li.error { background: #ffebee; color: #c62828; border-color: #ffcdd2; }
-
-    </style>
 </head>
-<body>
+<body {% if not user.is_authenticated %}class="no-auth"{% endif %}>
     <div class="header">
         <button class="menu-btn" id="menu-btn">☰</button>
-        <h1>TOEIC學習平台</h1>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <h1>TOEIC學習平台</h1>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <div class="nav-buttons">
             <a href="{% url 'home' %}" target="_self">
                 <button class="nav-btn {% if request.path == '/' %}current{% endif %}">
                     <i class="fas fa-home"></i> 首頁
                 </button>
             </a>
-        
             <a href="{% url 'test' %}" target="_self">
                 <button class="nav-btn {% if request.path == '/test/' %}current{% endif %}">
                     <i class="fas fa-file-alt"></i> 測驗平台
                 </button>
             </a>
-        
             {% if user.is_authenticated %}
                 <a href="{% url 'record' %}" target="_self">
                     <button class="nav-btn">
@@ -96,7 +53,6 @@
     </ul>
     {% endif %}
 
-    <!-- 主要內容區域 -->
     <div class="main-content">
         <div class="content">
             <div class="marquee-container">
@@ -105,16 +61,15 @@
                 </div>
             </div>
         </div>
-        <div class="scroll-down">⬇ 滑動以查看更多內容</div>  
+        <div class="scroll-down">⬇ 滑動以查看更多內容</div>
 
-        <!-- 輪播圖 -->
         <div class="carousel">
             <div class="carousel-images" id="carousel-images">
-                <img src="https://blog.tripbaa.com/wp-content/uploads/2020/10/plan_2020090316351725750_b.jpg" 
+                <img src="https://blog.tripbaa.com/wp-content/uploads/2020/10/plan_2020090316351725750_b.jpg"
                 alt="Image 1" class="carousel-image">
-                <img src="https://www.necoast-nsa.gov.tw/FileArtPic.ashx?id=791&w=600&h=400" 
+                <img src="https://www.necoast-nsa.gov.tw/FileArtPic.ashx?id=791&w=600&h=400"
                 alt="Image 2" class="carousel-image">
-                <img src="https://pgw.udn.com.tw/gw/photo.php?u=https://uc.udn.com.tw/photo/2024/09/25/realtime/30605412.jpg&s=Y&x=0&y=0&sw=7629&sh=5089&exp=3600" 
+                <img src="https://pgw.udn.com/gw/photo.php?u=https://uc.udn.com.tw/photo/2024/09/25/realtime/30605412.jpg&s=Y&x=0&y=0&sw=7629&sh=5089&exp=3600"
                 alt="Image 3" class="carousel-image">
             </div>
             <button class="carousel-button carousel-button-left" id="prevBtn">❮</button>
@@ -122,16 +77,29 @@
         </div>
     </div>
 
-    <!-- ✅ Footer 放在 body 裡面 -->
+    <div id="ai-chatbot-container" style="display: none;">
+        <div id="chatbot-header">
+            多益單字小幫手
+            <button id="chatbot-close-btn">&times;</button>
+        </div>
+        <div id="chatbot-messages">
+            </div>
+        <div id="chatbot-input-area">
+            <input type="text" id="user-input" placeholder="輸入「開始」來領取單字...">
+            <button id="send-btn">發送</button>
+        </div>
+    </div>
+    <button id="chatbot-toggle-btn">多益單字小幫手</button>
+
+
     <footer class="footer">
         <div class="footer-container">
-            <!-- 聯絡我們區塊 -->
             <div class="contact-us">
                 <h3>聯絡我們</h3>
                 <ul>
                     <li><i class="fas fa-phone"></i><a href="tel:02 3322 2777"> 電話：02 3322 2777</a></li>
-                    <li><i class="fas fa-map"></i><a href="https://maps.app.goo.gl/3NMVwufcbbTrfQNz6" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
-                    <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d14459.01851827243!2d121.5254698!3d25.0423998!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a970a11a84ad%3A0x58e05f2528812097!2z5ZyL56uL6Ie65YyX5ZWG5qWt5aSn5a24!5e0!3m2!1szh-TW!2stw!4v1728891709611!5m2!1szh-TW!2stw" 
+                    <li><i class="fas fa-map"></i><a href="https://maps.google.com/maps?q=100台北市中正區濟南路一段321號" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3614.779774567228!2d121.52495111500305!3d25.04253398396551!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a96937e008c7%3A0x6b8c9d4b0d0a25b!2zMTAw5Y-w5b-Y5L-h5b-Y5L-h5YyX5bmz6LSi6LSi6JukMTUx6JukNTk26Juk!5e0!3m2!1szh-TW!2stw!4v1652199732731!5m2!1szh-TW!2stw"
                         height="250"
                         style="border:0;"
                         allowfullscreen=""
@@ -142,8 +110,201 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 TOEIC學習平台 版權所有</p>
+            <p>© 2025 TOEIC學習平台 版權所有</p>
         </div>
     </footer>
+
+    <script>
+    // ✅ 根據後端傳來的使用者名稱，建立一個唯一的 localStorage key
+    const currentUsername = "{{ username }}"; 
+    const storageKey = `chatbot_history_${currentUsername}`;
+    // 檢查使用者是否已登入
+    const isAuthenticated = "{{ user.is_authenticated }}" === "True";
+
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatbotContainer = document.getElementById('ai-chatbot-container');
+        const chatbotToggleBtn = document.getElementById('chatbot-toggle-btn');
+        const chatbotCloseBtn = document.getElementById('chatbot-close-btn');
+        const chatbotMessages = document.getElementById('chatbot-messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const csrfToken = getCookie('csrftoken');
+        const logoutForm = document.getElementById('logout-form');
+        
+        // 如果使用者未登入，則直接結束，不執行 AI 機器人相關的邏輯
+        if (!isAuthenticated) {
+            return;
+        }
+
+        // ✅ 負責為所有單字卡片按鈕綁定事件（修正了重複綁定的問題）
+        function bindFamiliarButtonEvents() {
+            const buttons = chatbotMessages.querySelectorAll('.mark-familiar-btn');
+            buttons.forEach(button => {
+                // 移除舊的事件監聽器，避免重複執行
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                
+                newButton.addEventListener('click', function(e) {
+                    const wordId = e.target.dataset.wordId;
+                    markWordAsFamiliar(wordId);
+                });
+            });
+        }
+
+        // 從 localStorage 載入對話紀錄
+        function loadChatHistory() {
+            const history = localStorage.getItem(storageKey);
+            if (history) {
+                chatbotMessages.innerHTML = history;
+                chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+                bindFamiliarButtonEvents();
+            } else {
+                addMessage('robot', '哈囉！我是你的 AI 學習小幫手。輸入「開始」來領取你今天的單字吧！');
+            }
+        }
+
+        // 將對話紀錄保存到 localStorage
+        function saveChatHistory() {
+            localStorage.setItem(storageKey, chatbotMessages.innerHTML);
+        }
+
+        function addMessage(sender, htmlContent, isVocabCard = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chatbot-message', `${sender}-message`);
+            messageDiv.innerHTML = htmlContent;
+            chatbotMessages.appendChild(messageDiv);
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+            saveChatHistory();
+            if (isVocabCard) {
+                bindFamiliarButtonEvents();
+            }
+        }
+        
+        // ✅ 修正了開啟/關閉聊天視窗的邏輯
+        chatbotToggleBtn.addEventListener('click', () => {
+            chatbotContainer.style.display = 'flex';
+            chatbotToggleBtn.style.display = 'none'; // 開啟時隱藏按鈕
+        });
+
+        chatbotCloseBtn.addEventListener('click', () => {
+            chatbotContainer.style.display = 'none';
+            chatbotToggleBtn.style.display = 'block'; // 關閉時顯示按鈕
+        });
+        
+        // 🚨 修正：移除登出時清除 localStorage 的程式碼，以保留聊天紀錄
+        if (logoutForm) {
+            logoutForm.addEventListener('submit', function() {
+                // 移除此行程式碼，以保留聊天紀錄
+            });
+        }
+
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message === '') return;
+
+            addMessage('user', message);
+            userInput.value = '';
+
+            if (message.toLowerCase() === '開始') {
+                fetchDailyVocabulary();
+            } else {
+                addMessage('robot', '抱歉，我目前只能識別「開始」指令來提供單字喔！');
+            }
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function fetchDailyVocabulary() {
+    fetch('/api/chatbot/vocabulary/', {
+        method: 'GET',
+        headers: { 'X-CSRFToken': csrfToken }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.words && data.words.length > 0) {
+            addMessage('robot', data.message);
+            data.words.forEach(word => {
+                const card = `
+                    <div class="vocab-card">
+                        <h4>
+                            <span class="word-text">${word.word}</span>
+                            <span class="pronunciation-text">${word.pronunciation}</span>
+                            <span class="part-of-speech">${word.part_of_speech}</span>
+                        </h4>
+                        <p class="translation">${word.translation}</p>
+                        <p class="example-sentence">例句：${word.example_sentence}</p>
+                        <p class="example-translation">翻譯：${word.example_translation}</p>
+                        <button class="mark-familiar-btn" data-word-id="${word.word_id}">我已熟悉這個單字</button>
+                    </div>
+                `;
+                addMessage('robot', card, true);
+            });
+        } else {
+            addMessage('robot', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching vocabulary:', error);
+        addMessage('robot', '糟糕！無法取得單字，請稍後再試。');
+    });
+}
+
+        // ✅ 修正了 markWordAsFamiliar 函式，避免重複發送請求
+        function markWordAsFamiliar(wordId) {
+            const button = chatbotMessages.querySelector(`button[data-word-id="${wordId}"]`);
+            if (button) {
+                button.disabled = true; 
+                button.textContent = '已標記';
+            }
+
+            fetch('/api/chatbot/mark-familiar/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ word_id: wordId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                addMessage('robot', data.message);
+            })
+            .catch(error => {
+                console.error('Error marking word as familiar:', error);
+                addMessage('robot', '標記單字時發生錯誤，請稍後再試。');
+            });
+        }
+
+        // 頁面載入時執行
+        loadChatHistory();
+        
+        // ✅ 頁面載入時，如果 localStorage 有紀錄，則直接顯示聊天視窗並隱藏按鈕
+        if (localStorage.getItem(storageKey)) {
+             chatbotContainer.style.display = 'flex';
+             chatbotToggleBtn.style.display = 'none';
+        }
+    });
+    </script>
 </body>
 </html>

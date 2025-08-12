@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django import forms
 from .models import User, Question, ReadingPassage, ListeningMaterial, REJECTION_REASON_CHOICES
+from .models import DailyVocabulary, UserVocabularyRecord
 
 # ---- User 管理 ----
 class CustomUserAdmin(UserAdmin):
@@ -77,3 +78,14 @@ class ListeningMaterialAdmin(admin.ModelAdmin):
     list_filter = ('listening_level', 'is_approved')
     search_fields = ('transcript', 'topic')
     list_editable = ('is_approved',)
+
+@admin.register(DailyVocabulary)
+class DailyVocabularyAdmin(admin.ModelAdmin):
+    list_display = ('word', 'translation', 'difficulty_level', 'part_of_speech')
+    search_fields = ('word', 'translation')
+
+@admin.register(UserVocabularyRecord)
+class UserVocabularyRecordAdmin(admin.ModelAdmin):
+    list_display = ('user', 'word', 'is_familiar', 'last_viewed')
+    list_filter = ('is_familiar',)
+    search_fields = ('user__email', 'word__word')

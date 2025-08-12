@@ -16,13 +16,26 @@ from django.db.models import Count, Q, F, FloatField, ExpressionWrapper
 from django.core.paginator import Paginator
 from django.conf import settings
 import os
+from .models import DailyVocabulary, UserVocabularyRecord
 
 # 獲取當前使用的使用者模型
 User = get_user_model()
 
 # 首頁、使用者頁面、登入、註冊、測試頁面等不變
+from django.shortcuts import render
+
 def home(request):
-    return render(request, 'home.html', {'user': request.user})
+    username = None
+    if request.user.is_authenticated:
+        # ✅ 將這裡的 .username 替換為你的客製化使用者模型中的使用者名稱欄位
+        # 你的模型使用 email 作為 USERNAME_FIELD
+        username = request.user.email
+    
+    context = {
+        'user': request.user,
+        'username': username # 將 username 變數傳到模板
+    }
+    return render(request, 'home.html', context)
 
 def user(request):
     return render(request, 'user.html')
@@ -935,3 +948,125 @@ def get_learning_suggestions(category_performance):
     if not suggestions:
         suggestions.append("太棒了！你目前表現穩定，請持續保持並多挑戰進階題目。")
     return suggestions
+
+@login_required
+@require_http_methods(["GET"])
+def get_daily_vocabulary(request):
+    """
+    為使用者推薦單字。
+    推薦邏輯：
+    1. 優先推薦 1 個「已經看過但未標記為熟悉」的舊單字。
+    2. 接著推薦 2 個「從未看過」的新單字。
+    使用者每天最多只能領取一次。
+    """
+    user = request.user
+    today_date = timezone.now().date()
+    
+    # 檢查使用者今天是否已經領取過單字
+    if UserVocabularyRecord.objects.filter(user=user, last_viewed__date=today_date).exists():
+        return JsonResponse({'message': '你今天已經領取過單字囉！請明天再來。'})
+
+    # 獲取使用者已熟悉的單字 ID
+    familiar_words_ids = UserVocabularyRecord.objects.filter(
+        user=user,
+        is_familiar=True
+    ).values_list('word_id', flat=True)
+
+    # 獲取所有已看過但未熟悉的單字 ID (弱點單字)
+    weak_words_ids = UserVocabularyRecord.objects.filter(
+        user=user,
+        is_familiar=False
+    ).values_list('word_id', flat=True)
+
+    # 獲取所有尚未熟悉的單字 ID (包含弱點和從未看過的)
+    all_unfamiliar_words_ids = DailyVocabulary.objects.exclude(
+        id__in=familiar_words_ids
+    ).values_list('id', flat=True)
+
+    # 獲取所有從未看過的單字 ID (排除所有已看過的單字)
+    unseen_words_ids = DailyVocabulary.objects.exclude(
+        id__in=familiar_words_ids
+    ).exclude(
+        id__in=weak_words_ids
+    ).values_list('id', flat=True)
+
+    words_to_get_ids = []
+
+    # 1. 優先推薦 1 個舊單字 (弱點單字)
+    if weak_words_ids:
+        weak_word_id = random.choice(list(weak_words_ids))
+        words_to_get_ids.append(weak_word_id)
+
+    # 2. 接著推薦 2 個新單字
+    # 如果弱點單字不足，則從新單字庫中補足
+    num_new_words = 3 - len(words_to_get_ids)
+    if unseen_words_ids and num_new_words > 0:
+        # 從新單字中隨機選擇
+        new_word_candidates = [wid for wid in unseen_words_ids if wid not in words_to_get_ids]
+        num_to_sample = min(len(new_word_candidates), num_new_words)
+        words_to_get_ids.extend(random.sample(new_word_candidates, num_to_sample))
+
+    # 如果總數仍不足，則從所有未熟悉的單字中隨機補足
+    if len(words_to_get_ids) < 3:
+        remaining_slots = 3 - len(words_to_get_ids)
+        remaining_candidates = [wid for wid in all_unfamiliar_words_ids if wid not in words_to_get_ids]
+        num_to_sample = min(len(remaining_candidates), remaining_slots)
+        words_to_get_ids.extend(random.sample(remaining_candidates, num_to_sample))
+    
+    if not words_to_get_ids:
+        return JsonResponse({'message': '恭喜你！所有單字都已完成學習。', 'words': []})
+        
+    new_words = DailyVocabulary.objects.filter(id__in=words_to_get_ids)
+
+    words_data = []
+    for word in new_words:
+        UserVocabularyRecord.objects.update_or_create(
+            user=user,
+            word=word,
+            defaults={
+                'last_viewed': timezone.now(),
+            }
+        )
+        words_data.append({
+            'word_id': word.id,
+            'word': word.word,
+            'pronunciation': word.pronunciation,
+            'part_of_speech': word.part_of_speech,
+            'translation': word.translation,
+            'example_sentence': word.example_sentence,
+            'example_translation': word.example_translation,
+            'difficulty_level': word.difficulty_level,
+            'related_category': word.related_category,
+        })
+
+    return JsonResponse({'message': '這是你今天的單字清單：', 'words': words_data})
+
+@login_required
+@require_http_methods(["POST"])
+def mark_word_as_familiar(request):
+    """
+    將指定單字標記為熟悉。
+    """
+    try:
+        data = json.loads(request.body)
+        word_id = data.get('word_id')
+
+        if not word_id:
+            return JsonResponse({'message': '未提供單字 ID。'}, status=400)
+
+        word = DailyVocabulary.objects.get(id=word_id)
+        user = request.user
+
+        record, created = UserVocabularyRecord.objects.update_or_create(
+            user=user,
+            word=word,
+            defaults={'is_familiar': True, 'last_viewed': timezone.now()}
+        )
+        
+        return JsonResponse({'message': f'單字 "{word.word}" 已成功標記為熟悉！'})
+    except DailyVocabulary.DoesNotExist:
+        return JsonResponse({'message': '找不到該單字。'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'message': '無效的 JSON 格式。'}, status=400)
+    except Exception as e:
+        return JsonResponse({'message': f'發生錯誤：{e}'}, status=500)

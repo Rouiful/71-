@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 import uuid
 from django.utils import timezone
+from django.conf import settings
 # ---------- ENUM choices ----------
 
 LISTENING_LEVEL_CHOICES = [
@@ -102,6 +103,31 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+# 每日單字資料表
+class DailyVocabulary(models.Model):
+    word = models.CharField(max_length=100, unique=True, verbose_name="英文單字")
+    pronunciation = models.CharField(max_length=100, blank=True, verbose_name="音標")
+    part_of_speech = models.CharField(max_length=50, verbose_name="詞性")
+    translation = models.CharField(max_length=255, verbose_name="中文翻譯")
+    example_sentence = models.TextField(verbose_name="例句")
+    example_translation = models.TextField(verbose_name="例句翻譯", blank=True, null=True)
+    difficulty_level = models.IntegerField(default=1, verbose_name="難度等級")
+    related_category = models.CharField(max_length=100, blank=True, verbose_name="主題類別")
+
+    def __str__(self):
+        return self.word
+
+class UserVocabularyRecord(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="使用者")
+    word = models.ForeignKey(DailyVocabulary, on_delete=models.CASCADE, verbose_name="單字")
+    is_familiar = models.BooleanField(default=False, verbose_name="是否熟悉")
+    last_viewed = models.DateTimeField(auto_now=True, verbose_name="最後檢視時間")
+
+    class Meta:
+        unique_together = ('user', 'word')
+        verbose_name = "使用者單字紀錄"
+        verbose_name_plural = "使用者單字紀錄"
 
 # ---------- Other Models ----------
 
