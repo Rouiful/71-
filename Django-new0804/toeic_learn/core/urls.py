@@ -43,6 +43,8 @@ urlpatterns = [
     path('part7/', views.part7, name='part7'), 
     # path('exam/part/<int:part_number>/', views.exam_part_view, name='exam_part_view'),
     path('api/update_exam_status/', views.update_exam_status, name='update_exam_status'),
+    path('api/chatbot/vocabulary/', views.get_daily_vocabulary, name='get_daily_vocabulary'),
+    path('api/chatbot/mark-familiar/', views.mark_word_as_familiar, name='mark_word_as_familiar'),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
