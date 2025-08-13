@@ -69,6 +69,14 @@ ACCENT_CHOICES = [
     ('canadian', 'Canadian'),
 ]
 
+CATEGORY_CHOICES = [
+        ('Business', '商業與職場'),
+        ('Technology', '科技與資訊'),
+        ('DailyLife', '日常生活'),
+        ('Academic', '學術與教育'),
+        ('Travel', '旅遊與文化'),
+    ]
+
 # ---------- Custom User Manager ----------
 
 class CustomUserManager(BaseUserManager):
@@ -95,6 +103,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
+    learning_interests = models.CharField(max_length=255, blank=True, default='')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['nickname']
@@ -113,7 +122,7 @@ class DailyVocabulary(models.Model):
     example_sentence = models.TextField(verbose_name="例句")
     example_translation = models.TextField(verbose_name="例句翻譯", blank=True, null=True)
     difficulty_level = models.IntegerField(default=1, verbose_name="難度等級")
-    related_category = models.CharField(max_length=100, blank=True, verbose_name="主題類別")
+    related_category = models.CharField(max_length=100, blank=True, verbose_name="主題類別",choices=CATEGORY_CHOICES,default='DailyLife')
 
     def __str__(self):
         return self.word

@@ -24,6 +24,7 @@ iframe {
 }
 
 
+
 /* 輪播圖樣式 */
 .carousel {
     position: relative;
@@ -101,37 +102,54 @@ a.current .nav-btn {
 
 
 /* 訊息提示樣式 */
+/* 基礎訊息樣式 */
 .messages {
     list-style: none;
     padding: 0;
-    margin: 20px auto;
+    margin: 10px auto 5px; /* 這裡將 margin-top 和 margin-bottom 簡寫，並使用 auto 讓區塊水平置中 */
     max-width: 600px;
     text-align: center;
 }
 
+/* 個別訊息項目樣式 */
 .messages li {
-    background: #e0f7fa;
-    color: #00796b;
-    border: 1px solid #b2ebf2;
-    border-radius: 6px;
-    padding: 10px 16px;
+    padding: 15px 20px; /* 增加內距，讓訊息看起來更大氣 */
     margin-bottom: 10px;
-    font-size: 1.1em;
+    border-radius: 8px; /* 圓角邊框 */
+    font-weight: 500;
+    font-size: 16px;
     display: inline-block;
+    /* 訊息出現時的動畫效果 */
+    animation: fadeIn 0.5s ease-in-out;
 }
 
-.messages li.success { 
-    background: #e8f5e9; 
-    color: #388e3c; 
-    border-color: #c8e6c9; 
+/* 登入成功的樣式 */
+.messages li.success {
+    background-color: #d4edda; /* 淡綠色背景 */
+    color: #155724; /* 深綠色文字 */
+    border: 1px solid #c3e6cb;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.messages li.error { 
-    background: #ffebee; 
-    color: #c62828; 
-    border-color: #ffcdd2; 
+/* 登入失敗的樣式 */
+.messages li.error {
+    background-color: #f8d7da; /* 淡紅色背景 */
+    color: #721c24; /* 深紅色文字 */
+    border: 1px solid #f5c6cb;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+/* 漸入動畫效果 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
 /* 標記單字按鈕樣式 */
 .mark-familiar-btn {
@@ -306,15 +324,19 @@ a.current .nav-btn {
 }
 
 .vocab-card .word-text {
+    font-size: 1.2em;
     font-weight: bold;
 }
 
 /* 新增：音標樣式 */
 .vocab-card .pronunciation-text {
+    /* 主要修改：讓音標換行 */
+    display: block; 
     font-size: 1em;
-    color: #3498db; /* 藍色，讓音標更顯眼 */
-    font-family: Arial, sans-serif; /* 使用清晰的字體 */
+    color: #3498db;
+    font-family: Arial, sans-serif;
     font-style: normal;
+    margin-top: 5px; /* 新增：與上方單字增加間距 */
 }
 
 
@@ -343,4 +365,11 @@ a.current .nav-btn {
     color: #555; /* 顏色從 #95a5a6 改為更深的 #555 */
     margin-top: 5px;
     line-height: 1.4;
+}
+
+/* 這裡就是針對單字中文翻譯的樣式 */
+.vocab-card .word-translation {
+    font-size: 0.9em;
+    color: #888;
+    font-weight: normal;
 }
