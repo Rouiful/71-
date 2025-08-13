@@ -1,28 +1,31 @@
+import os
+import json
+import random
+from datetime import timedelta
+
+from django.conf import settings
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, get_user_model
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
-from toeic.models import ReadingPassage, Question,QUESTION_CATEGORY_CHOICES
-import json
-from .models import ReadingPassage, Question,UserAnswer,ExamResult
-from django.utils import timezone
-from datetime import timedelta
-from .models import Exam, ExamQuestion, ExamSession
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_POST
-from django.db.models import Count, Q, F, FloatField, ExpressionWrapper
 from django.core.paginator import Paginator
-from django.conf import settings
-import os
-from .models import DailyVocabulary, UserVocabularyRecord
+from django.db.models import Count, Q, F, FloatField, ExpressionWrapper
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods, require_POST
+from django.utils import timezone
+
+from .forms import RegisterForm
+from .models import (
+    ReadingPassage, Question, QUESTION_CATEGORY_CHOICES, UserAnswer,
+    ExamResult, Exam, ExamQuestion, ExamSession, DailyVocabulary,
+    UserVocabularyRecord, ListeningMaterial
+)
 
 # 獲取當前使用的使用者模型
 User = get_user_model()
 
 # 首頁、使用者頁面、登入、註冊、測試頁面等不變
-from django.shortcuts import render
 
 def home(request):
     username = None
@@ -61,8 +64,6 @@ def login_view(request):
 
     return render(request, 'login.html')
 
-from .forms import RegisterForm
-
 def register_view(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
@@ -78,14 +79,6 @@ def register_view(request):
 
 def test_page(request):
     return render(request, 'test.html')
-
-
-
-# ===== 以下為去除 n8n 呼叫的 API 及頁面 =====
-
-from django.shortcuts import render
-from toeic.models import Question
-import random
 
 def reading_test(request):
     # 隨機抽取一篇已審核的文章
@@ -120,7 +113,6 @@ def reading_test(request):
             'difficulty_level': q.difficulty_level,
         })
 
-    import json
     # 把題目序列化成JSON字串，安全傳到模板
     questions_json = json.dumps(questions_data)
 
@@ -515,11 +507,6 @@ def part2(request):
     }
     return render(request, 'part2.html', context)
 
-import json
-import random
-from django.shortcuts import render, redirect
-from django.utils import timezone
-from .models import Exam, ExamQuestion, ExamSession, Question, ListeningMaterial
 
 def part3(request):
     part_number = 3
@@ -620,7 +607,6 @@ def part5(request):
             'difficulty_level': q.difficulty_level,
         })
 
-    import json
     questions_json = json.dumps(questions_data)
 
     user = request.user
@@ -681,7 +667,6 @@ def part6(request):
         'reading_level': passage.reading_level,
     }
 
-    import json
     questions_json = json.dumps(questions_data)
 
     user = request.user
@@ -953,7 +938,7 @@ def get_learning_suggestions(category_performance):
 @require_http_methods(["GET"])
 def get_daily_vocabulary(request):
     """
-    為使用者推薦單字。
+    根據使用者的學習興趣推薦單字。
     推薦邏輯：
     1. 優先推薦 1 個「已經看過但未標記為熟悉」的舊單字。
     2. 接著推薦 2 個「從未看過」的新單字。
@@ -963,9 +948,10 @@ def get_daily_vocabulary(request):
     today_date = timezone.now().date()
     
     # 檢查使用者今天是否已經領取過單字
-    if UserVocabularyRecord.objects.filter(user=user, last_viewed__date=today_date).exists():
-        return JsonResponse({'message': '你今天已經領取過單字囉！請明天再來。'})
-
+    # 注意：這裡應該檢查是否有 today_date 的記錄，而不是今天已經領取過單字
+    if UserVocabularyRecord.objects.filter(user=user, last_viewed__date=today_date).count() >= 3:
+        return JsonResponse({'message': '你今天已經領取過單字囉！請明天再來。', 'words': []})
+    
     # 獲取使用者已熟悉的單字 ID
     familiar_words_ids = UserVocabularyRecord.objects.filter(
         user=user,
@@ -977,14 +963,23 @@ def get_daily_vocabulary(request):
         user=user,
         is_familiar=False
     ).values_list('word_id', flat=True)
+    
+    # 獲取使用者設定的學習興趣
+    # user.learning_interests 預期是 "Business,Technology" 這樣的字串
+    user_interests = user.learning_interests.split(',') if hasattr(user, 'learning_interests') and user.learning_interests else []
+    
+    # 根據興趣篩選單字
+    vocabulary_queryset = DailyVocabulary.objects.all()
+    if user_interests:
+        vocabulary_queryset = vocabulary_queryset.filter(related_category__in=user_interests)
 
-    # 獲取所有尚未熟悉的單字 ID (包含弱點和從未看過的)
-    all_unfamiliar_words_ids = DailyVocabulary.objects.exclude(
+    # 獲取所有尚未熟悉的單字 ID (包含弱點和從未看過的)，並應用興趣篩選
+    all_unfamiliar_words_ids = vocabulary_queryset.exclude(
         id__in=familiar_words_ids
     ).values_list('id', flat=True)
 
-    # 獲取所有從未看過的單字 ID (排除所有已看過的單字)
-    unseen_words_ids = DailyVocabulary.objects.exclude(
+    # 獲取所有從未看過的單字 ID (排除所有已看過的單字)，並應用興趣篩選
+    unseen_words_ids = vocabulary_queryset.exclude(
         id__in=familiar_words_ids
     ).exclude(
         id__in=weak_words_ids
@@ -992,16 +987,15 @@ def get_daily_vocabulary(request):
 
     words_to_get_ids = []
 
-    # 1. 優先推薦 1 個舊單字 (弱點單字)
-    if weak_words_ids:
-        weak_word_id = random.choice(list(weak_words_ids))
+    # 1. 優先推薦 1 個舊單字 (弱點單字)，並確保它在興趣範圍內
+    weak_words_in_interest = [wid for wid in weak_words_ids if wid in all_unfamiliar_words_ids]
+    if weak_words_in_interest:
+        weak_word_id = random.choice(weak_words_in_interest)
         words_to_get_ids.append(weak_word_id)
 
-    # 2. 接著推薦 2 個新單字
-    # 如果弱點單字不足，則從新單字庫中補足
+    # 2. 接著推薦 2 個新單字，並確保它在興趣範圍內
     num_new_words = 3 - len(words_to_get_ids)
     if unseen_words_ids and num_new_words > 0:
-        # 從新單字中隨機選擇
         new_word_candidates = [wid for wid in unseen_words_ids if wid not in words_to_get_ids]
         num_to_sample = min(len(new_word_candidates), num_new_words)
         words_to_get_ids.extend(random.sample(new_word_candidates, num_to_sample))
@@ -1011,10 +1005,13 @@ def get_daily_vocabulary(request):
         remaining_slots = 3 - len(words_to_get_ids)
         remaining_candidates = [wid for wid in all_unfamiliar_words_ids if wid not in words_to_get_ids]
         num_to_sample = min(len(remaining_candidates), remaining_slots)
-        words_to_get_ids.extend(random.sample(remaining_candidates, num_to_sample))
+        if remaining_candidates:
+            words_to_get_ids.extend(random.sample(remaining_candidates, num_to_sample))
     
     if not words_to_get_ids:
-        return JsonResponse({'message': '恭喜你！所有單字都已完成學習。', 'words': []})
+        # 如果使用者已經學完所有該興趣下的單字，或者沒有單字可推薦
+        message = '恭喜你！所有單字都已完成學習，或目前沒有符合你興趣的單字了。'
+        return JsonResponse({'message': message, 'words': []})
         
     new_words = DailyVocabulary.objects.filter(id__in=words_to_get_ids)
 
@@ -1070,3 +1067,24 @@ def mark_word_as_familiar(request):
         return JsonResponse({'message': '無效的 JSON 格式。'}, status=400)
     except Exception as e:
         return JsonResponse({'message': f'發生錯誤：{e}'}, status=500)
+
+
+@require_POST
+@login_required
+def update_learning_interests(request):
+    try:
+        data = json.loads(request.body)
+        interests_string = data.get('interests', '')
+
+        # 取得目前登入的使用者
+        user = request.user
+        
+        # 更新使用者的學習興趣欄位
+        user.learning_interests = interests_string
+        user.save()
+
+        return JsonResponse({'success': True, 'message': '學習興趣已成功更新！'})
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '無效的 JSON 資料。'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'更新失敗: {str(e)}'}, status=500)

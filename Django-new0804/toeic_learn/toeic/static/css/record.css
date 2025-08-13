@@ -246,3 +246,136 @@ th {
                 height: 350px; /* 在手機上可以再調小一點 */
             }
         }
+
+     /* 學習興趣選擇區塊樣式 */
+.interest-selection-section {
+    background-color: #f8f9fa;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin-top: 30px;
+    border: 1px solid #e9ecef;
+}
+
+.interest-selection-section h3 {
+    font-size: 1.5rem;
+    color: #495057;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.interest-selection-section h3 i {
+    margin-right: 10px;
+    color: #007bff;
+}
+
+.interest-selection-section p {
+    font-size: 1rem;
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+/* 興趣選項容器 */
+.interest-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+/* 興趣選項標籤的父元素樣式 */
+.interest-options label {
+    background-color: #ffffff;
+    border: 1px solid #ced4da;
+    border-radius: 25px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+    color: #495057;
+    display: inline-flex;
+    align-items: center;
+    user-select: none;
+}
+
+/* 隱藏原生 checkbox */
+.interest-options input[type="checkbox"] {
+    display: none;
+}
+
+/* 當 input 被勾選時，改變其緊鄰的兄弟元素 <span> 的樣式 */
+.interest-options input[type="checkbox"]:checked + span {
+    background-color: #007bff;
+    color: #ffffff;
+    padding: 10px 20px; /* 為了維持膠囊形狀，重新設定 padding */
+    border-radius: 25px; /* 讓 <span> 也有圓角 */
+    margin: -10px -20px; /* 負邊距來填滿父元素 label 的空間 */
+}
+
+/* 為了讓父元素 label 在勾選時有邊框和陰影，這裡需要做個調整 */
+/* 更直接的方式是把樣式加在 label 上，而不是 span 上 */
+
+/* 最終且最簡單的 CSS 方案，同時修改 HTML 和 CSS */
+.interest-options label {
+    /* 這裡的樣式保持不變 */
+    background-color: #ffffff;
+    border: 1px solid #ced4da;
+    border-radius: 25px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+
+/* 滑鼠懸停時的視覺回饋 */
+.interest-options label:hover {
+    background-color: #e9ecef;
+    border-color: #007bff;
+}
+
+/* 當內部的 input 被勾選時，改變 label 的樣式 */
+/* 由於沒有父選擇器，這段 CSS 樣式會失效。 */
+/* 所以最簡單的解決方案，就是用 JavaScript 動態加 class */
+/* 或是將 input 和 span 包在另一個 div 裡面 */
+
+/* 考慮到你的需求，我推薦你回到**不用修改 HTML 的 JavaScript 方案**。
+因為修改 HTML 會讓你的程式碼變得更複雜，且可能影響其他樣式。
+
+但是如果你堅持要修改 HTML，請使用下面的 CSS 程式碼：
+*/
+
+.interest-options input[type="checkbox"]:checked + span {
+    background-color: #007bff; /* 主題藍色 */
+    color: #ffffff; /* 白色文字 */
+    border-color: #007bff; /* 邊框顏色 */
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2); /* 陰影 */
+}
+
+/* 儲存按鈕樣式 */
+.save-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #ffffff;
+    background-color: #28a745;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.save-btn:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+}
+
+.save-btn i {
+    margin-right: 8px;
+}

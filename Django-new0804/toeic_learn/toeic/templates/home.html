@@ -116,7 +116,7 @@
 
     <script>
     // ✅ 根據後端傳來的使用者名稱，建立一個唯一的 localStorage key
-    const currentUsername = "{{ username }}"; 
+    const currentUsername = "{{ username }}";
     const storageKey = `chatbot_history_${currentUsername}`;
     // 檢查使用者是否已登入
     const isAuthenticated = "{{ user.is_authenticated }}" === "True";
@@ -146,7 +146,7 @@
         const sendBtn = document.getElementById('send-btn');
         const csrfToken = getCookie('csrftoken');
         const logoutForm = document.getElementById('logout-form');
-        
+
         // 如果使用者未登入，則直接結束，不執行 AI 機器人相關的邏輯
         if (!isAuthenticated) {
             return;
@@ -159,7 +159,7 @@
                 // 移除舊的事件監聽器，避免重複執行
                 const newButton = button.cloneNode(true);
                 button.parentNode.replaceChild(newButton, button);
-                
+
                 newButton.addEventListener('click', function(e) {
                     const wordId = e.target.dataset.wordId;
                     markWordAsFamiliar(wordId);
@@ -172,7 +172,7 @@
             const history = localStorage.getItem(storageKey);
             if (history) {
                 chatbotMessages.innerHTML = history;
-                chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+                // 頁面加載時不自動滾動，只在打開聊天視窗時滾動
                 bindFamiliarButtonEvents();
             } else {
                 addMessage('robot', '哈囉！我是你的 AI 學習小幫手。輸入「開始」來領取你今天的單字吧！');
@@ -189,24 +189,27 @@
             messageDiv.classList.add('chatbot-message', `${sender}-message`);
             messageDiv.innerHTML = htmlContent;
             chatbotMessages.appendChild(messageDiv);
+            // ✅ 每次新增訊息後都自動滾動到最底部
             chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
             saveChatHistory();
             if (isVocabCard) {
                 bindFamiliarButtonEvents();
             }
         }
-        
+
         // ✅ 修正了開啟/關閉聊天視窗的邏輯
         chatbotToggleBtn.addEventListener('click', () => {
             chatbotContainer.style.display = 'flex';
             chatbotToggleBtn.style.display = 'none'; // 開啟時隱藏按鈕
+            // ✅ 新增：開啟聊天視窗時自動滾動至最底部
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
         });
 
         chatbotCloseBtn.addEventListener('click', () => {
             chatbotContainer.style.display = 'none';
             chatbotToggleBtn.style.display = 'block'; // 關閉時顯示按鈕
         });
-        
+
         // 🚨 修正：移除登出時清除 localStorage 的程式碼，以保留聊天紀錄
         if (logoutForm) {
             logoutForm.addEventListener('submit', function() {
@@ -236,45 +239,45 @@
         });
 
         function fetchDailyVocabulary() {
-    fetch('/api/chatbot/vocabulary/', {
-        method: 'GET',
-        headers: { 'X-CSRFToken': csrfToken }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.words && data.words.length > 0) {
-            addMessage('robot', data.message);
-            data.words.forEach(word => {
-                const card = `
-                    <div class="vocab-card">
-                        <h4>
-                            <span class="word-text">${word.word}</span>
-                            <span class="pronunciation-text">${word.pronunciation}</span>
-                            <span class="part-of-speech">${word.part_of_speech}</span>
-                        </h4>
-                        <p class="translation">${word.translation}</p>
-                        <p class="example-sentence">例句：${word.example_sentence}</p>
-                        <p class="example-translation">翻譯：${word.example_translation}</p>
-                        <button class="mark-familiar-btn" data-word-id="${word.word_id}">我已熟悉這個單字</button>
-                    </div>
-                `;
-                addMessage('robot', card, true);
+            fetch('/api/chatbot/vocabulary/', {
+                method: 'GET',
+                headers: { 'X-CSRFToken': csrfToken }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.words && data.words.length > 0) {
+                    addMessage('robot', data.message);
+                    data.words.forEach(word => {
+                        const card = `
+                            <div class="vocab-card">
+                                <h4>
+                                    <span class="word-text">${word.word}</span>
+                                    <span class="word-translation">${word.translation}</span>
+                                    <span class="pronunciation-text">${word.pronunciation}</span>
+                                    <span class="part-of-speech">${word.part_of_speech}</span>
+                                </h4>
+                                <p class="example-sentence">例句：${word.example_sentence}</p>
+                                <p class="example-translation">翻譯：${word.example_translation}</p>
+                                <button class="mark-familiar-btn" data-word-id="${word.word_id}">我已熟悉這個單字</button>
+                            </div>
+                        `;
+                        addMessage('robot', card, true);
+                    });
+                } else {
+                    addMessage('robot', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching vocabulary:', error);
+                addMessage('robot', '糟糕！無法取得單字，請稍後再試。');
             });
-        } else {
-            addMessage('robot', data.message);
         }
-    })
-    .catch(error => {
-        console.error('Error fetching vocabulary:', error);
-        addMessage('robot', '糟糕！無法取得單字，請稍後再試。');
-    });
-}
 
         // ✅ 修正了 markWordAsFamiliar 函式，避免重複發送請求
         function markWordAsFamiliar(wordId) {
             const button = chatbotMessages.querySelector(`button[data-word-id="${wordId}"]`);
             if (button) {
-                button.disabled = true; 
+                button.disabled = true;
                 button.textContent = '已標記';
             }
 
@@ -298,13 +301,10 @@
 
         // 頁面載入時執行
         loadChatHistory();
-        
-        // ✅ 頁面載入時，如果 localStorage 有紀錄，則直接顯示聊天視窗並隱藏按鈕
-        if (localStorage.getItem(storageKey)) {
-             chatbotContainer.style.display = 'flex';
-             chatbotToggleBtn.style.display = 'none';
-        }
+
+        // ✅ 移除此處的滾動程式碼，因為它會導致頁面加載時就滾動。
+        // 我們將滾動功能移到開啟聊天視窗時執行。
     });
-    </script>
+</script>
 </body>
 </html>
