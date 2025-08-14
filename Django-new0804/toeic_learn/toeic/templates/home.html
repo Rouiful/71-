@@ -25,6 +25,11 @@
                 </button>
             </a>
             {% if user.is_authenticated %}
+                <a href="{% url 'history' %}" target="_self">
+                    <button class="nav-btn {% if request.path == '/history/' %}current{% endif %}">
+                        <i class="fas fa-history"></i> 歷史單字
+                    </button>
+                </a>
                 <a href="{% url 'record' %}" target="_self">
                     <button class="nav-btn">
                         <i class="fas fa-user"></i> 歡迎, {{ user.nickname }}
@@ -116,7 +121,7 @@
 
     <script>
     // ✅ 根據後端傳來的使用者名稱，建立一個唯一的 localStorage key
-    const currentUsername = "{{ username }}";
+    const currentUsername = "{{ user.nickname }}";
     const storageKey = `chatbot_history_${currentUsername}`;
     // 檢查使用者是否已登入
     const isAuthenticated = "{{ user.is_authenticated }}" === "True";
@@ -149,6 +154,10 @@
 
         // 如果使用者未登入，則直接結束，不執行 AI 機器人相關的邏輯
         if (!isAuthenticated) {
+            // 讓聊天機器人按鈕隱藏，以避免未登入使用者看到
+            if (chatbotToggleBtn) {
+                chatbotToggleBtn.style.display = 'none';
+            }
             return;
         }
 
@@ -172,7 +181,6 @@
             const history = localStorage.getItem(storageKey);
             if (history) {
                 chatbotMessages.innerHTML = history;
-                // 頁面加載時不自動滾動，只在打開聊天視窗時滾動
                 bindFamiliarButtonEvents();
             } else {
                 addMessage('robot', '哈囉！我是你的 AI 學習小幫手。輸入「開始」來領取你今天的單字吧！');
@@ -273,13 +281,18 @@
             });
         }
 
-        // ✅ 修正了 markWordAsFamiliar 函式，避免重複發送請求
+        // ✅ 修正了 markWordAsFamiliar 函式，確保標記失敗時按鈕狀態能恢復
         function markWordAsFamiliar(wordId) {
             const button = chatbotMessages.querySelector(`button[data-word-id="${wordId}"]`);
-            if (button) {
-                button.disabled = true;
-                button.textContent = '已標記';
+            if (!button) {
+                return;
             }
+
+            // 暫時鎖定按鈕，並顯示「處理中...」
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = '處理中...';
+            button.classList.add('loading'); 
 
             fetch('/api/chatbot/mark-familiar/', {
                 method: 'POST',
@@ -289,21 +302,33 @@
                 },
                 body: JSON.stringify({ word_id: wordId })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    // 如果伺服器回傳非 200 狀態碼，拋出錯誤
+                    throw new Error('Server responded with an error!');
+                }
+                return response.json();
+            })
             .then(data => {
+                // 請求成功，更新按鈕狀態
+                button.textContent = '已標記';
+                button.classList.add('marked'); 
+                button.classList.remove('loading');
                 addMessage('robot', data.message);
             })
             .catch(error => {
                 console.error('Error marking word as familiar:', error);
+                // 🚨 發生錯誤時，將按鈕狀態恢復！
+                button.disabled = false;
+                button.textContent = originalText;
+                button.classList.remove('loading');
+                // 顯示錯誤訊息
                 addMessage('robot', '標記單字時發生錯誤，請稍後再試。');
             });
         }
 
         // 頁面載入時執行
         loadChatHistory();
-
-        // ✅ 移除此處的滾動程式碼，因為它會導致頁面加載時就滾動。
-        // 我們將滾動功能移到開啟聊天視窗時執行。
     });
 </script>
 </body>

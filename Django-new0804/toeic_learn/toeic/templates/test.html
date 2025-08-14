@@ -45,6 +45,11 @@
             </a>
         
             {% if user.is_authenticated %}
+                <a href="{% url 'history' %}" target="_self">
+                    <button class="nav-btn {% if request.path == '/history/' %}current{% endif %}">
+                        <i class="fas fa-history"></i> 歷史單字
+                    </button>
+                </a>
                 <a href="{% url 'record' %}" target="_self">
                     <button class="nav-btn">
                         <i class="fas fa-user"></i> 歡迎, {{ user.nickname }}
@@ -96,13 +101,12 @@
 
     <footer class="footer">
         <div class="footer-container">
-            <!-- 聯絡我們區塊 -->
             <div class="contact-us">
                 <h3>聯絡我們</h3>
                 <ul>
                     <li><i class="fas fa-phone"></i><a href="tel:02 3322 2777"> 電話：02 3322 2777</a></li>
-                    <li><i class="fas fa-map"></i><a href="https://maps.app.goo.gl/3NMVwufcbbTrfQNz6" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
-                    <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d14459.01851827243!2d121.5254698!3d25.0423998!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a970a11a84ad%3A0x58e05f2528812097!2z5ZyL56uL6Ie65YyX5ZWG5qWt5aSn5a24!5e0!3m2!1szh-TW!2stw!4v1728891709611!5m2!1szh-TW!2stw" 
+                    <li><i class="fas fa-map"></i><a href="https://maps.google.com/maps?q=100台北市中正區濟南路一段321號" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3614.779774567228!2d121.52495111500305!3d25.04253398396551!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a96937e008c7%3A0x6b8c9d4b0d0a25b!2zMTAw5Y-w5b-Y5L-h5b-Y5L-h5YyX5bmz6LSi6LSi6JukMTUx6JukNTk26Juk!5e0!3m2!1szh-TW!2stw!4v1652199732731!5m2!1szh-TW!2stw"
                         height="250"
                         style="border:0;"
                         allowfullscreen=""
@@ -113,7 +117,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 TOEIC學習平台 版權所有</p>
+            <p>© 2025 TOEIC學習平台 版權所有</p>
         </div>
     </footer>
 </body>

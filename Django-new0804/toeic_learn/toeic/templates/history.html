@@ -1,0 +1,267 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOEIC學習平台 - 歷史單字</title>
+    <link rel="stylesheet" href="{% static 'css/common.css' %}">
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+    <link rel="stylesheet" href="{% static 'css/history.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body {% if not user.is_authenticated %}class="no-auth"{% endif %}>
+    <div class="header">
+        <button class="menu-btn" id="menu-btn">☰</button>
+        <h1>TOEIC學習平台</h1>      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <div class="nav-buttons">
+            <a href="{% url 'home' %}" target="_self">
+                <button class="nav-btn {% if request.path == '/' %}current{% endif %}">
+                    <i class="fas fa-home"></i> 首頁
+                </button>
+            </a>
+            <a href="{% url 'test' %}" target="_self">
+                <button class="nav-btn {% if request.path == '/test/' %}current{% endif %}">
+                    <i class="fas fa-file-alt"></i> 測驗平台
+                </button>
+            </a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'history' %}" target="_self">
+                    <button class="nav-btn {% if request.path == '/history/' %}current{% endif %}">
+                        <i class="fas fa-history"></i> 歷史單字
+                    </button>
+                </a>
+                <a href="{% url 'record' %}" target="_self">
+                    <button class="nav-btn">
+                        <i class="fas fa-user"></i> 歡迎, {{ user.nickname }}
+                    </button>
+                </a>
+                <form id="logout-form" action="{% url 'logout' %}" method="POST" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-btn">
+                        <i class="fas fa-sign-out-alt"></i> 登出
+                    </button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}" target="_self">
+                    <button class="nav-btn {% if request.path == '/login/' %}current{% endif %}">
+                        <i class="fas fa-user"></i> 會員註冊/登入
+                    </button>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="main-content">
+            <h2 class="content-title"><i class="fas fa-book"></i> 我的單字紀錄</h2>
+            
+            <div class="filter-section">
+                <form id="vocab-filter-form" class="filter-form">
+                    <div class="filter-options">
+                        <label>
+                            <input type="radio" name="status" value="all" {% if current_status == 'all' %}checked{% endif %}>
+                            <span>所有單字</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="status" value="familiar" {% if current_status == 'familiar' %}checked{% endif %}>
+                            <span>已熟悉</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="status" value="unfamiliar" {% if current_status == 'unfamiliar' %}checked{% endif %}>
+                            <span>未熟悉</span>
+                        </label>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="vocab-search" placeholder="搜尋單字..." value="{{ current_search }}">
+                        <button type="button" id="search-btn"><i class="fas fa-search"></i></button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="vocab-list-container">
+                {% if vocabularies %}
+                    <p class="record-count">您已記錄了 {{ vocabularies|length }} 個單字。</p>
+                    <div class="vocab-cards-grid">
+                        {% for record in vocabularies %}
+                            <div class="vocab-card-item">
+                                <div class="word-details">
+                                    <div class="word-and-translation">
+                                        <h4 class="word-text">{{ record.word.word }}</h4>
+                                        <span class="translation-on-side">{{ record.word.part_of_speech }} - {{ record.word.translation }}</span>
+                                    </div>
+                                    
+                                    <span class="pronunciation-text">{{ record.word.pronunciation }}</span>
+                                    
+                                    <p class="example-sentence">
+                                        例句： {{ record.word.example_sentence }}
+                                    </p>
+                                    <p class="example-translation">
+                                        翻譯： {{ record.word.example_translation }}
+                                    </p>
+                                </div>
+                                
+                                <div class="record-info">
+                                    <span class="familiar-status {% if record.is_familiar %}familiar{% else %}not-familiar{% endif %}">
+                                        {% if record.is_familiar %}
+                                            <i class="fas fa-check-circle"></i> 已熟悉
+                                        {% else %}
+                                            <i class="fas fa-times-circle"></i> 未熟悉
+                                        {% endif %}
+                                    </span>
+                                    <span class="last-viewed">
+                                        最後檢視：{{ record.last_viewed|date:"Y年m月d日 H:i" }}
+                                    </span>
+                                    
+                                    {% if not record.is_familiar %}
+                                        <button class="mark-familiar-btn" data-word-id="{{ record.word.id }}" data-is-familiar="{{ record.is_familiar }}">
+                                            標記為熟悉
+                                        </button>
+                                    {% endif %}
+                                    
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="no-record-message">
+                        <p>您目前沒有任何單字紀錄。開始與多益單字小幫手互動，記錄您的單字吧！</p>
+                        <a href="{% url 'home' %}" class="btn-primary">返回首頁</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="contact-us">
+                <h3>聯絡我們</h3>
+                <ul>
+                    <li><i class="fas fa-phone"></i><a href="tel:02 3322 2777"> 電話：02 3322 2777</a></li>
+                    <li><i class="fas fa-map"></i><a href="https://maps.app.goo.gl/3NMVwufcbbTrfQNz6" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d14459.01851827243!2d121.5254698!3d25.0423998!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a970a11a84ad%3A0x58e05f2528812097!2z5ZyL56uL6Ie65YyX5ZWG5qWt5aSn5a24!5e0!3m2!1szh-TW!2stw!4v1728891709611!5m2!1szh-TW!2stw"
+                        height="250"
+                        style="border:0;"
+                        allowfullscreen=""
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 TOEIC學習平台 版權所有</p>
+        </div>
+    </footer>
+
+    <script>
+        // 這裡可以放一些共用的 JavaScript 腳本，例如 menu-btn 的邏輯
+        document.getElementById('menu-btn').addEventListener('click', function() {
+            // 處理側邊選單開關的邏輯
+            const navButtons = document.querySelector('.nav-buttons');
+            navButtons.classList.toggle('show-menu');
+        });
+
+        // 標記/取消標記的 JavaScript 程式碼
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.startsWith(name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const csrfToken = getCookie('csrftoken');
+            
+            document.querySelectorAll('.mark-familiar-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const wordId = this.dataset.wordId;
+                    // 將新狀態直接設定為 true，因為我們只處理「標記為熟悉」的操作
+                    const newStatus = true;
+                    
+                    fetch('/api/chatbot/mark-familiar/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ word_id: wordId, familiar_status: newStatus })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(data.message);
+                            location.reload(); 
+                        } else {
+                            alert(data.message || '操作失敗，請稍後再試。');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('發生錯誤，請稍後再試。');
+                    });
+                });
+            });
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+        const csrfToken = getCookie('csrftoken');
+        
+        // 監聽單字卡按鈕的點擊事件
+        document.querySelectorAll('.mark-familiar-btn').forEach(button => {
+            // ... (這部分是之前已熟悉的邏輯，保持不動)
+        });
+
+        // ================= 新增這段篩選邏輯 =================
+        const filterForm = document.getElementById('vocab-filter-form');
+        const searchInput = document.getElementById('vocab-search');
+        const searchBtn = document.getElementById('search-btn');
+
+        // 監聽 radio 按鈕的變化
+        filterForm.addEventListener('change', function() {
+            const status = document.querySelector('input[name="status"]:checked').value;
+            const searchTerm = searchInput.value;
+            
+            updateHistoryPage(status, searchTerm);
+        });
+
+        // 監聽搜尋按鈕的點擊
+        searchBtn.addEventListener('click', function() {
+            const status = document.querySelector('input[name="status"]:checked').value;
+            const searchTerm = searchInput.value;
+            
+            updateHistoryPage(status, searchTerm);
+        });
+        
+        // 監聽搜尋輸入框的 Enter 鍵
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // 阻止表單預設提交行為
+                const status = document.querySelector('input[name="status"]:checked').value;
+                const searchTerm = searchInput.value;
+                updateHistoryPage(status, searchTerm);
+            }
+        });
+
+        function updateHistoryPage(status, searchTerm) {
+            let url = new URL(window.location.href);
+            url.searchParams.set('status', status);
+            if (searchTerm) {
+                url.searchParams.set('search', searchTerm);
+            } else {
+                url.searchParams.delete('search');
+            }
+            window.location.href = url.toString();
+        }
+    });
+    </script>
+</body>
+</html>
