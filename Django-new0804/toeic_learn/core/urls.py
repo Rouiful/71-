@@ -46,6 +46,7 @@ urlpatterns = [
     path('api/chatbot/vocabulary/', views.get_daily_vocabulary, name='get_daily_vocabulary'),
     path('api/chatbot/mark-familiar/', views.mark_word_as_familiar, name='mark_word_as_familiar'),
     path('update-interests/', views.update_learning_interests, name='update_interests'),
+    path('history/', views.history_view, name='history'),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

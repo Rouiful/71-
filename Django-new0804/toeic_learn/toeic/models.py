@@ -132,7 +132,8 @@ class UserVocabularyRecord(models.Model):
     word = models.ForeignKey(DailyVocabulary, on_delete=models.CASCADE, verbose_name="單字")
     is_familiar = models.BooleanField(default=False, verbose_name="是否熟悉")
     last_viewed = models.DateTimeField(auto_now=True, verbose_name="最後檢視時間")
-
+    sent_time = models.DateTimeField(auto_now_add=True, null=True, blank=True, verbose_name="單字發送時間")
+    
     class Meta:
         unique_together = ('user', 'word')
         verbose_name = "使用者單字紀錄"

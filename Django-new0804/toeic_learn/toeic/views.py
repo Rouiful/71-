@@ -19,7 +19,7 @@ from .forms import RegisterForm
 from .models import (
     ReadingPassage, Question, QUESTION_CATEGORY_CHOICES, UserAnswer,
     ExamResult, Exam, ExamQuestion, ExamSession, DailyVocabulary,
-    UserVocabularyRecord, ListeningMaterial
+    UserVocabularyRecord, ListeningMaterial,
 )
 
 # 獲取當前使用的使用者模型
@@ -354,6 +354,7 @@ def test_result(request):
         'page_title': '測驗結果',
         'test_type': 'reading'
     }
+    
     return render(request, 'result.html', context)
 
 @login_required
@@ -947,9 +948,15 @@ def get_daily_vocabulary(request):
     user = request.user
     today_date = timezone.now().date()
     
-    # 檢查使用者今天是否已經領取過單字
-    # 注意：這裡應該檢查是否有 today_date 的記錄，而不是今天已經領取過單字
-    if UserVocabularyRecord.objects.filter(user=user, last_viewed__date=today_date).count() >= 3:
+    # ✅ 已修正：使用 sent_time 欄位來判斷使用者今天是否已領取過單字
+    # 這樣可以避免因為使用者回頭檢視舊單字而導致判斷錯誤。
+    already_sent_today = UserVocabularyRecord.objects.filter(
+        user=user,
+        sent_time__date=today_date
+    ).exists()
+
+    if already_sent_today:
+        # 如果今天已經有任何單字被發送過，則不發送新單字
         return JsonResponse({'message': '你今天已經領取過單字囉！請明天再來。', 'words': []})
     
     # 獲取使用者已熟悉的單字 ID
@@ -965,7 +972,6 @@ def get_daily_vocabulary(request):
     ).values_list('word_id', flat=True)
     
     # 獲取使用者設定的學習興趣
-    # user.learning_interests 預期是 "Business,Technology" 這樣的字串
     user_interests = user.learning_interests.split(',') if hasattr(user, 'learning_interests') and user.learning_interests else []
     
     # 根據興趣篩選單字
@@ -1017,6 +1023,8 @@ def get_daily_vocabulary(request):
 
     words_data = []
     for word in new_words:
+        # ✅ 使用 update_or_create 確保只在單字第一次被發送時建立新紀錄，
+        # 並且 sent_time 會自動設定，之後不會更新。
         UserVocabularyRecord.objects.update_or_create(
             user=user,
             word=word,
@@ -1088,3 +1096,32 @@ def update_learning_interests(request):
         return JsonResponse({'success': False, 'message': '無效的 JSON 資料。'}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'更新失敗: {str(e)}'}, status=500)
+
+def history_view(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    # 1. 從網址中獲取篩選和搜尋參數
+    status = request.GET.get('status', 'all')
+    search_term = request.GET.get('search', '')
+
+    # 2. 初始化查詢集合
+    user_vocabularies = UserVocabularyRecord.objects.filter(user=request.user)
+
+    # 3. 根據參數進行篩選
+    if status == 'familiar':
+        user_vocabularies = user_vocabularies.filter(is_familiar=True)
+    elif status == 'unfamiliar':
+        user_vocabularies = user_vocabularies.filter(is_familiar=False)
+    
+    # 4. 根據搜尋詞進行篩選
+    if search_term:
+        user_vocabularies = user_vocabularies.filter(word__word__icontains=search_term)
+
+    # 5. 將所有資料傳送給模板
+    context = {
+        'vocabularies': user_vocabularies,
+        'current_status': status,
+        'current_search': search_term,
+    }
+    return render(request, 'history.html', context)
