@@ -72,10 +72,6 @@
                             <span>未熟悉</span>
                         </label>
                     </div>
-                    <div class="search-box">
-                        <input type="text" id="vocab-search" placeholder="搜尋單字..." value="{{ current_search }}">
-                        <button type="button" id="search-btn"><i class="fas fa-search"></i></button>
-                    </div>
                 </form>
             </div>
 
@@ -84,7 +80,7 @@
                     <p class="record-count">您已記錄了 {{ vocabularies|length }} 個單字。</p>
                     <div class="vocab-cards-grid">
                         {% for record in vocabularies %}
-                            <div class="vocab-card-item">
+                            <div class="vocab-card-item {% if record.is_familiar %}familiar-card{% else %}not-familiar-card{% endif %}">
                                 <div class="word-details">
                                     <div class="word-and-translation">
                                         <h4 class="word-text">{{ record.word.word }}</h4>
@@ -114,11 +110,10 @@
                                     </span>
                                     
                                     {% if not record.is_familiar %}
-                                        <button class="mark-familiar-btn" data-word-id="{{ record.word.id }}" data-is-familiar="{{ record.is_familiar }}">
+                                        <button class="mark-familiar-btn" data-word-id="{{ record.word.id }}">
                                             標記為熟悉
                                         </button>
                                     {% endif %}
-                                    
                                 </div>
                             </div>
                         {% endfor %}
@@ -156,112 +151,122 @@
     </footer>
 
     <script>
-        // 這裡可以放一些共用的 JavaScript 腳本，例如 menu-btn 的邏輯
-        document.getElementById('menu-btn').addEventListener('click', function() {
-            // 處理側邊選單開關的邏輯
-            const navButtons = document.querySelector('.nav-buttons');
-            navButtons.classList.toggle('show-menu');
-        });
+    // 處理選單按鈕的邏輯
+    document.getElementById('menu-btn').addEventListener('click', function() {
+        const navButtons = document.querySelector('.nav-buttons');
+        navButtons.classList.toggle('show-menu');
+    });
 
-        // 標記/取消標記的 JavaScript 程式碼
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.startsWith(name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
+    // 取得 CSRF token 的函式
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
                 }
             }
-            return cookieValue;
         }
+        return cookieValue;
+    }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const csrfToken = getCookie('csrftoken');
-            
-            document.querySelectorAll('.mark-familiar-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const wordId = this.dataset.wordId;
-                    // 將新狀態直接設定為 true，因為我們只處理「標記為熟悉」的操作
-                    const newStatus = true;
-                    
-                    fetch('/api/chatbot/mark-familiar/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken
-                        },
-                        body: JSON.stringify({ word_id: wordId, familiar_status: newStatus })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert(data.message);
-                            location.reload(); 
-                        } else {
-                            alert(data.message || '操作失敗，請稍後再試。');
+    document.addEventListener('DOMContentLoaded', function() {
+        const csrfToken = getCookie('csrftoken');
+        const familiarButtons = document.querySelectorAll('.mark-familiar-btn');
+
+        familiarButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const clickedButton = this;
+                const wordId = clickedButton.dataset.wordId;
+                const newStatus = true;
+
+                fetch('/api/chatbot/mark-familiar/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ word_id: wordId, familiar_status: newStatus })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const vocabCard = clickedButton.closest('.vocab-card-item'); 
+                        if (vocabCard) {
+                            updateCardToFamiliar(vocabCard);
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('發生錯誤，請稍後再試。');
-                    });
+                        
+                        // 在成功更新後，呼叫篩選函式，它會同時更新計數
+                        filterVocabCards();
+                    } else {
+                        alert(data.message || '操作失敗，請稍後再試。');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('發生錯誤，請稍後再試。');
                 });
             });
         });
-        document.addEventListener('DOMContentLoaded', function() {
-        const csrfToken = getCookie('csrftoken');
-        
-        // 監聽單字卡按鈕的點擊事件
-        document.querySelectorAll('.mark-familiar-btn').forEach(button => {
-            // ... (這部分是之前已熟悉的邏輯，保持不動)
-        });
 
-        // ================= 新增這段篩選邏輯 =================
-        const filterForm = document.getElementById('vocab-filter-form');
-        const searchInput = document.getElementById('vocab-search');
-        const searchBtn = document.getElementById('search-btn');
-
-        // 監聽 radio 按鈕的變化
-        filterForm.addEventListener('change', function() {
-            const status = document.querySelector('input[name="status"]:checked').value;
-            const searchTerm = searchInput.value;
+        function updateCardToFamiliar(card) {
+            const statusSpan = card.querySelector('.familiar-status');
+            const toggleButton = card.querySelector('.mark-familiar-btn');
             
-            updateHistoryPage(status, searchTerm);
-        });
+            statusSpan.classList.remove('not-familiar');
+            statusSpan.classList.add('familiar');
+            statusSpan.innerHTML = '<i class="fas fa-check-circle"></i> 已熟悉';
 
-        // 監聽搜尋按鈕的點擊
-        searchBtn.addEventListener('click', function() {
-            const status = document.querySelector('input[name="status"]:checked').value;
-            const searchTerm = searchInput.value;
+            card.classList.remove('not-familiar-card');
+            card.classList.add('familiar-card');
             
-            updateHistoryPage(status, searchTerm);
-        });
-        
-        // 監聽搜尋輸入框的 Enter 鍵
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault(); // 阻止表單預設提交行為
-                const status = document.querySelector('input[name="status"]:checked').value;
-                const searchTerm = searchInput.value;
-                updateHistoryPage(status, searchTerm);
+            if (toggleButton) {
+                toggleButton.remove();
             }
-        });
-
-        function updateHistoryPage(status, searchTerm) {
-            let url = new URL(window.location.href);
-            url.searchParams.set('status', status);
-            if (searchTerm) {
-                url.searchParams.set('search', searchTerm);
-            } else {
-                url.searchParams.delete('search');
-            }
-            window.location.href = url.toString();
         }
+        
+        // 篩選邏輯和計數更新
+        const filterForm = document.getElementById('vocab-filter-form');
+        filterForm.addEventListener('change', function() {
+            filterVocabCards();
+        });
+
+        function filterVocabCards() {
+            const status = document.querySelector('input[name="status"]:checked').value;
+            const vocabCards = document.querySelectorAll('.vocab-card-item');
+            let displayedCount = 0;
+            
+            vocabCards.forEach(card => {
+                const isFamiliar = card.classList.contains('familiar-card');
+                const shouldDisplay = (status === 'all') || 
+                                      (status === 'familiar' && isFamiliar) || 
+                                      (status === 'unfamiliar' && !isFamiliar);
+
+                card.style.display = shouldDisplay ? 'block' : 'none';
+                
+                if (shouldDisplay) {
+                    displayedCount++;
+                }
+            });
+            
+            // 更新計數顯示
+            updateRecordCount(displayedCount);
+        }
+        
+        // 新增的函式：更新單字總數顯示
+        function updateRecordCount(count) {
+            const recordCountElement = document.querySelector('.record-count');
+            if (recordCountElement) {
+                recordCountElement.textContent = `您已記錄了 ${count} 個單字。`;
+            }
+        }
+        
+        // 頁面載入時，初始設定計數
+        filterVocabCards();
     });
-    </script>
+</script>
 </body>
 </html>

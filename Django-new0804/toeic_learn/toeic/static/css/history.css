@@ -126,6 +126,14 @@
     justify-content: space-between;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+.vocab-card-item.familiar-card {
+    border-left: 5px solid #28a745; /* 綠色邊框 */
+}
+
+/* 新增：未熟悉的單字卡樣式 */
+.vocab-card-item.not-familiar-card {
+    border-left: 5px solid #dc3545; /* 紅色邊框 */
+}
 
 .vocab-card-item:hover {
     transform: translateY(-5px);
@@ -192,6 +200,22 @@
 
 .not-familiar .fas.fa-times-circle {
     color: #dc3545; /* 紅色 */
+}
+
+.familiar-status.familiar {
+    color: #28a745; /* 綠色 */
+    background-color: #e2f5e7;
+    padding: 4px 8px; /* 增加內邊距 */
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.familiar-status.not-familiar {
+    color: #dc3545; /* 紅色 */
+    background-color: #f8e4e7;
+    padding: 4px 8px; /* 增加內邊距 */
+    border-radius: 4px;
+    font-size: 0.9em;
 }
 
 .last-viewed {
