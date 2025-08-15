@@ -360,22 +360,20 @@ def test_result(request):
 @login_required
 def all_test(request):
     user = request.user
-
+    
     try:
-        # 修正重點：從所有綜合測驗中隨機選擇一份
-        available_exams = Exam.objects.filter(exam_type='mixed')
+        # 關鍵修正：篩選 part=0 的考卷，代表綜合測驗
+        available_exams = Exam.objects.filter(part=0)
         
         if not available_exams.exists():
             return render(request, 'home.html', {'message': '找不到綜合測驗。請執行管理指令以建立。'})
         
-        # 從所有可用的綜合測驗中隨機選擇一個
         exam = random.choice(available_exams)
             
     except Exception as e:
         return render(request, 'home.html', {'message': f'發生錯誤：{e}'})
 
-    # ... (後續程式碼不變)
-    # 建立一個新的 ExamSession
+    # ... (後續程式碼與之前相同，不需要修改) ...
     session = ExamSession.objects.create(
         exam=exam,
         user=user,
@@ -448,25 +446,20 @@ def all_test(request):
 def part2(request):
     part_number = 2
 
-    # 取得所有有 Part 2 題目的考卷
-    exam_ids = ExamQuestion.objects.filter(question__part=part_number).values_list('exam_id', flat=True).distinct()
-    if not exam_ids:
-        return render(request, 'part2.html', {'error': '目前沒有 Part 2 的考卷'})
+    # 關鍵修正：只篩選 part=2 的考卷
+    available_exams = Exam.objects.filter(part=part_number)
+    if not available_exams.exists():
+        return render(request, 'part2.html', {'error': f'目前沒有 Part {part_number} 的專屬考卷'})
+    
+    selected_exam = random.choice(available_exams)
 
-    selected_exam_id = random.choice(list(exam_ids))
-    exam = Exam.objects.get(pk=selected_exam_id)
-
-    # 取出這份考卷的所有 Part 2 題目
     exam_questions = ExamQuestion.objects.filter(
-        exam=exam,
-        question__part=part_number
+        exam=selected_exam
     ).select_related('question', 'question__material').order_by('question_order')
 
     questions_data = []
-
     for eq in exam_questions:
         q = eq.question
-        # 確認音檔完整路徑
         audio_url = None
         if q.material and q.material.audio_url:
             audio_url = settings.MEDIA_URL + q.material.audio_url
@@ -479,31 +472,28 @@ def part2(request):
             'option_c_text': q.option_c_text,
             'difficulty_level': q.difficulty_level,
             'transcript': q.material.transcript if q.material else None,
-            'audio_url': audio_url,  # 動態帶入每題的音檔 URL
+            'audio_url': audio_url,
         })
-
+    
     if not questions_data:
         return render(request, 'part2.html', {'error': '考卷中未找到對應音檔'})
 
     questions_json = json.dumps(questions_data)
-
-    # 建立使用者 session
     user = request.user
     if not user.is_authenticated:
         return redirect('login')
 
     session = ExamSession.objects.create(
-        exam=exam,
+        exam=selected_exam,
         user=user,
         time_limit_enabled=True,
         start_time=timezone.now(),
         end_time=timezone.now(),
         status='in_progress',
     )
-
     context = {
         'questions_json': questions_json,
-        'exam_id': exam.exam_id,
+        'exam_id': selected_exam.exam_id,
         'session_id': session.session_id,
     }
     return render(request, 'part2.html', context)
@@ -511,25 +501,13 @@ def part2(request):
 
 def part3(request):
     part_number = 3
-
-    # 取得所有有 Part 3 題目的考卷
-    exam_ids = ExamQuestion.objects.filter(question__part=part_number).values_list('exam_id', flat=True).distinct()
-    if not exam_ids:
-        return render(request, 'part3.html', {'error': '目前沒有 Part 3 的考卷'})
-
-    selected_exam_id = random.choice(list(exam_ids))
-    exam = Exam.objects.get(pk=selected_exam_id)
-
-    # 取出這份考卷的所有 Part 3 題目
-    exam_questions = ExamQuestion.objects.filter(
-        exam=exam,
-        question__part=part_number
-    ).select_related('question').order_by('question_order')
-
-    # 以第一個有 material 的題目取出該段對話（ListeningMaterial）
+    available_exams = Exam.objects.filter(part=part_number)
+    if not available_exams.exists():
+        return render(request, 'part3.html', {'error': f'目前沒有 Part {part_number} 的專屬考卷'})
+    selected_exam = random.choice(available_exams)
+    exam_questions = ExamQuestion.objects.filter(exam=selected_exam).select_related('question').order_by('question_order')
     material = None
     questions_data = []
-
     for eq in exam_questions:
         q = eq.question
         if not material and q.material:
@@ -543,15 +521,11 @@ def part3(request):
             'option_d_text': q.option_d_text,
             'difficulty_level': q.difficulty_level,
         })
-
     if not material:
         return render(request, 'part3.html', {'error': '考卷中未找到對應音檔'})
-
-    # 處理音檔 URL：如果不是以 http 或 / 開頭，就補上 MEDIA_URL
     audio_url = material.audio_url
     if audio_url and not audio_url.startswith(('http://', 'https://', '/')):
         audio_url = os.path.join(settings.MEDIA_URL, audio_url)
-
     material_data = {
         'audio_url': audio_url,
         'transcript': material.transcript,
@@ -559,42 +533,33 @@ def part3(request):
         'accent': material.accent,
         'listening_level': material.listening_level,
     }
-
     questions_json = json.dumps(questions_data)
-
-    # 建立使用者 session
     user = request.user
     if not user.is_authenticated:
         return redirect('login')
-
     session = ExamSession.objects.create(
-        exam=exam,
+        exam=selected_exam,
         user=user,
         time_limit_enabled=True,
         start_time=timezone.now(),
         end_time=timezone.now(),
         status='in_progress',
     )
-
     context = {
         'material': material_data,
         'questions_json': questions_json,
-        'exam_id': exam.exam_id,
+        'exam_id': selected_exam.exam_id,
         'session_id': session.session_id,
     }
     return render(request, 'part3.html', context)
 
 def part5(request):
     part_number = 5
-
-    exam_ids = ExamQuestion.objects.filter(question__part=part_number).values_list('exam_id', flat=True).distinct()
-    if not exam_ids:
-        return render(request, 'part5.html', {'error': '目前沒有 Part 5 的考卷'})
-    selected_exam_id = random.choice(list(exam_ids))
-    exam = Exam.objects.get(pk=selected_exam_id)
-
-    exam_questions = ExamQuestion.objects.filter(exam=exam, question__part=part_number).select_related('question').order_by('question_order')
-
+    available_exams = Exam.objects.filter(part=part_number)
+    if not available_exams.exists():
+        return render(request, 'part5.html', {'error': f'目前沒有 Part {part_number} 的專屬考卷'})
+    selected_exam = random.choice(available_exams)
+    exam_questions = ExamQuestion.objects.filter(exam=selected_exam).select_related('question').order_by('question_order')
     questions_data = []
     for eq in exam_questions:
         q = eq.question
@@ -607,106 +572,32 @@ def part5(request):
             'option_d_text': q.option_d_text,
             'difficulty_level': q.difficulty_level,
         })
-
     questions_json = json.dumps(questions_data)
-
     user = request.user
     if not user.is_authenticated:
         return redirect('login')
-
     session = ExamSession.objects.create(
-        exam=exam,
+        exam=selected_exam,
         user=user,
         time_limit_enabled=True,
         start_time=timezone.now(),
         end_time=timezone.now(),
         status='in_progress',
     )
-
     context = {
         'questions_json': questions_json,
-        'exam_id': exam.exam_id,
+        'exam_id': selected_exam.exam_id,
         'session_id': session.session_id,
     }
     return render(request, 'part5.html', context)
 
 def part6(request):
     part_number = 6
-
-    exam_ids = ExamQuestion.objects.filter(question__part=part_number).values_list('exam_id', flat=True).distinct()
-    if not exam_ids:
-        return render(request, 'part6.html', {'error': '目前沒有 Part 6 的考卷'})
-    selected_exam_id = random.choice(list(exam_ids))
-    exam = Exam.objects.get(pk=selected_exam_id)
-
-    exam_questions = ExamQuestion.objects.filter(exam=exam, question__part=part_number).select_related('question').order_by('question_order')
-
-    questions_data = []
-    passage = None
-    for eq in exam_questions:
-        q = eq.question
-        if not passage and q.passage:
-            passage = q.passage
-        questions_data.append({
-            'question_id': str(q.question_id),  # <-- 轉字串
-            'question_text': q.question_text,
-            'option_a_text': q.option_a_text,
-            'option_b_text': q.option_b_text,
-            'option_c_text': q.option_c_text,
-            'option_d_text': q.option_d_text,
-            'difficulty_level': q.difficulty_level,
-        })
-
-    if not passage:
-        return render(request, 'part6.html', {'error': '考卷中未找到對應文章'})
-
-    passage_data = {
-        'title': passage.title,
-        'content': passage.content,
-        'topic': passage.topic,
-        'word_count': passage.word_count,
-        'reading_level': passage.reading_level,
-    }
-
-    questions_json = json.dumps(questions_data)
-
-    user = request.user
-    if not user.is_authenticated:
-        return redirect('login')
-
-    session = ExamSession.objects.create(
-        exam=exam,
-        user=user,
-        time_limit_enabled=True,
-        start_time=timezone.now(),
-        end_time=timezone.now(),
-        status='in_progress',
-    )
-
-    context = {
-        'passage': passage_data,
-        'questions_json': questions_json,
-        'exam_id': exam.exam_id,
-        'session_id': session.session_id,
-    }
-    return render(request, 'part6.html', context)
-
-
-
-def part7(request):
-    part_number = 7
-
-    # 取得所有有 Part 7 題目的考卷
-    exam_ids = ExamQuestion.objects.filter(question__part=part_number).values_list('exam_id', flat=True).distinct()
-    if not exam_ids:
-        return render(request, 'part7.html', {'error': '目前沒有 Part 7 的考卷'})
-
-    selected_exam_id = random.choice(list(exam_ids))
-    exam = Exam.objects.get(pk=selected_exam_id)
-
-    # 取出這份考卷的所有 Part 7 題目
-    exam_questions = ExamQuestion.objects.filter(exam=exam, question__part=part_number).select_related('question').order_by('question_order')
-
+    available_exams = Exam.objects.filter(part=part_number)
+    if not available_exams.exists():
+        return render(request, 'part6.html', {'error': f'目前沒有 Part {part_number} 的專屬考卷'})
+    selected_exam = random.choice(available_exams)
+    exam_questions = ExamQuestion.objects.filter(exam=selected_exam).select_related('question').order_by('question_order')
     questions_data = []
     passage = None
     for eq in exam_questions:
@@ -722,10 +613,8 @@ def part7(request):
             'option_d_text': q.option_d_text,
             'difficulty_level': q.difficulty_level,
         })
-
     if not passage:
-        return render(request, 'part7.html', {'error': '考卷中未找到對應文章'})
-
+        return render(request, 'part6.html', {'error': '考卷中未找到對應文章'})
     passage_data = {
         'title': passage.title,
         'content': passage.content,
@@ -733,29 +622,77 @@ def part7(request):
         'word_count': passage.word_count,
         'reading_level': passage.reading_level,
     }
-
     questions_json = json.dumps(questions_data)
-
     user = request.user
     if not user.is_authenticated:
         return redirect('login')
-
     session = ExamSession.objects.create(
-        exam=exam,
+        exam=selected_exam,
         user=user,
         time_limit_enabled=True,
         start_time=timezone.now(),
         end_time=timezone.now(),
         status='in_progress',
     )
-
     context = {
         'passage': passage_data,
         'questions_json': questions_json,
-        'exam_id': exam.exam_id,
-        'session_id': session.session_id,  # <--- 傳給前端
+        'exam_id': selected_exam.exam_id,
+        'session_id': session.session_id,
+    }
+    return render(request, 'part6.html', context)
+
+def part7(request):
+    part_number = 7
+    available_exams = Exam.objects.filter(part=part_number)
+    if not available_exams.exists():
+        return render(request, 'part7.html', {'error': f'目前沒有 Part {part_number} 的專屬考卷'})
+    selected_exam = random.choice(available_exams)
+    exam_questions = ExamQuestion.objects.filter(exam=selected_exam).select_related('question').order_by('question_order')
+    questions_data = []
+    passage = None
+    for eq in exam_questions:
+        q = eq.question
+        if not passage and q.passage:
+            passage = q.passage
+        questions_data.append({
+            'question_id': str(q.question_id),
+            'question_text': q.question_text,
+            'option_a_text': q.option_a_text,
+            'option_b_text': q.option_b_text,
+            'option_c_text': q.option_c_text,
+            'option_d_text': q.option_d_text,
+            'difficulty_level': q.difficulty_level,
+        })
+    if not passage:
+        return render(request, 'part7.html', {'error': '考卷中未找到對應文章'})
+    passage_data = {
+        'title': passage.title,
+        'content': passage.content,
+        'topic': passage.topic,
+        'word_count': passage.word_count,
+        'reading_level': passage.reading_level,
+    }
+    questions_json = json.dumps(questions_data)
+    user = request.user
+    if not user.is_authenticated:
+        return redirect('login')
+    session = ExamSession.objects.create(
+        exam=selected_exam,
+        user=user,
+        time_limit_enabled=True,
+        start_time=timezone.now(),
+        end_time=timezone.now(),
+        status='in_progress',
+    )
+    context = {
+        'passage': passage_data,
+        'questions_json': questions_json,
+        'exam_id': selected_exam.exam_id,
+        'session_id': session.session_id,
     }
     return render(request, 'part7.html', context)
+
 
 
 def exam_part_view(request, part_number):

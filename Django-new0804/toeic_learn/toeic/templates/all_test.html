@@ -373,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(data => {
             if (data.success) {
                 sessionStorage.setItem('test_result_data', JSON.stringify(data.data));
-                window.location.href ='/test_result/';
+                window.location.href ='/test_result/?type=mixed';
             } else {
                 alert('提交失敗：' + (data.error || '未知錯誤'));
                 nextBtn.disabled = false;

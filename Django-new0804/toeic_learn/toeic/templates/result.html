@@ -215,20 +215,19 @@
         </button>
     </div>
 
-    <footer class="footer">
+     <footer class="footer">
         <div class="footer-container">
             <div class="contact-us">
                 <h3>聯絡我們</h3>
                 <ul>
                     <li><i class="fas fa-phone"></i><a href="tel:02 3322 2777"> 電話：02 3322 2777</a></li>
-                    <li><i class="fas fa-map"></i><a href="http://googleusercontent.com/maps.google.com/6" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
-                    <iframe src="http://googleusercontent.com/maps.google.com/7" 
-                    width="300"
-                    height="250"
-                    style="border:0;"
-                    allowfullscreen=""
-                    loading="lazy"
-                    referrerpolicy="no-referrer-when-downgrade">
+                    <li><i class="fas fa-map"></i><a href="https://maps.google.com/maps?q=100台北市中正區濟南路一段321號" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3614.779774567228!2d121.52495111500305!3d25.04253398396551!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a96937e008c7%3A0x6b8c9d4b0d0a25b!2zMTAw5Y-w5b-Y5L-h5b-Y5L-h5YyX5bmz6LSi6LSi6JukMTUx6JukNTk26Juk!5e0!3m2!1szh-TW!2stw!4v1652199732731!5m2!1szh-TW!2stw"
+                        height="250"
+                        style="border:0;"
+                        allowfullscreen=""
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade">
                     </iframe>
                 </ul>
             </div>
@@ -254,6 +253,10 @@
 
                 const data = JSON.parse(resultData);
                 console.log('Result data:', data);
+                console.log('後端傳來的原始資料:', data);
+                console.log('test_type:', data.test_type);
+                console.log('part_analysis 的鍵數量:', Object.keys(data.part_analysis || {}).length);
+                console.log('part_analysis:', data.part_analysis);
                 
                 // 關鍵修正：在渲染前對題目進行排序
                 if (data.question_details) {
