@@ -151,8 +151,9 @@ class PointTransaction(models.Model):
 
 class ListeningMaterial(models.Model):
     material_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    audio_url = models.CharField(max_length=255,null=True,blank=True)
+    audio_url = models.CharField(max_length=255, null=True, blank=True)
     transcript = models.TextField()
+    translation = models.TextField(null=True, blank=True)  # 新增的欄位
     accent = models.CharField(max_length=50, choices=ACCENT_CHOICES, null=True, blank=True)
     topic = models.CharField(max_length=255)
     listening_level = models.CharField(max_length=20, choices=LISTENING_LEVEL_CHOICES)
@@ -166,6 +167,7 @@ class ReadingPassage(models.Model):
     passage_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
     content = models.TextField()
+    translation = models.TextField(null=True, blank=True)
     word_count = models.IntegerField()
     reading_level = models.CharField(max_length=20, choices=READING_LEVEL_CHOICES)
     topic = models.CharField(max_length=255)

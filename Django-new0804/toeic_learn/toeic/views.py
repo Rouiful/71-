@@ -157,6 +157,9 @@ def generate_reading_passage_api(request):
 @csrf_exempt
 @require_POST
 def submit_test_answer(request):
+    """
+    接收使用者測驗答案，計算分數並回傳詳細結果與分析。
+    """
     try:
         data = json.loads(request.body)
         session_id = data.get('session_id')
@@ -182,24 +185,29 @@ def submit_test_answer(request):
         part_analysis = {}
         category_analysis = {}
 
+        # 儲存文字稿、翻譯和閱讀文章
         transcripts = {}
+        translations = {}
+        reading_passages = [] # 新增：用於儲存 Part 6/7 文章
         part3_material_ids = set()
+        reading_material_ids = set()
 
         exam = session.exam
-        
-        # 關鍵修正：在查詢時加入排序
-        exam_questions_queryset = ExamQuestion.objects.filter(exam=exam).order_by('question_order').select_related('question')
-
+        exam_questions_queryset = ExamQuestion.objects.filter(exam=exam).order_by('question_order').select_related('question__material', 'question__passage')
         answers = answers or {}
 
-        # 這裡的迴圈會依照 question_order 順序執行
         for eq in exam_questions_queryset:
             question = eq.question
             qid = str(question.question_id)
             selected_option = answers.get(qid) 
+            if selected_option is None:
+                selected_option = ''
 
-            is_correct = (selected_option and selected_option.lower() == question.is_correct.lower())
-
+            is_correct = False
+            if selected_option:
+                if selected_option.lower() == question.is_correct.lower():
+                    is_correct = True
+            
             answer_text = ''
             if selected_option:
                 if selected_option.lower() == 'a':
@@ -211,17 +219,15 @@ def submit_test_answer(request):
                 elif selected_option.lower() == 'd':
                     answer_text = question.option_d_text
 
-                # 儲存用戶答案
-                UserAnswer.objects.create(
-                    session=session,
-                    question=question,
-                    selected_options=selected_option,
-                    answer_text=answer_text,
-                    is_correct=is_correct,
-                    answer_time=answer_time,
-                )
+            UserAnswer.objects.create(
+                session=session,
+                question=question,
+                selected_options=selected_option,
+                answer_text=answer_text,
+                is_correct=is_correct,
+                answer_time=answer_time,
+            )
 
-            # 統計累計
             total_questions += 1
             if is_correct:
                 correct_total += 1
@@ -247,7 +253,32 @@ def submit_test_answer(request):
                 {'value': 'd', 'text': question.option_d_text},
             ]
 
-            # 關鍵修正：將 question_order 添加到 question_details 中
+# 處理聽力部分 (Part 2, 3)
+            if question.material:
+                material = question.material
+                material_id_str = str(material.material_id)
+                
+                if part == 'part2':
+                    transcripts[qid] = material.transcript
+                    translations[qid] = material.translation
+                elif part == 'part3' and material_id_str not in part3_material_ids:
+                    transcripts[qid] = material.transcript
+                    translations[qid] = material.translation
+                    part3_material_ids.add(material_id_str)
+            
+            # 處理閱讀部分 (Part 6, 7)
+            if question.passage:
+                passage = question.passage
+                passage_id_str = str(passage.passage_id)
+                
+                if passage_id_str not in reading_material_ids:
+                    reading_passages.append({
+                        'id': passage_id_str,
+                        'content': passage.content,
+                        'translation': passage.translation,
+                    })
+                    reading_material_ids.add(passage_id_str)
+
             question_details.append({
                 'question_id': qid,
                 'question_text': question.question_text,
@@ -258,15 +289,8 @@ def submit_test_answer(request):
                 'options': options,
                 'part': part,
                 'category': question.get_question_category_display() if question.question_category else '未分類',
-                'question_order': eq.question_order,  # <-- 新增這行！
+                'question_order': eq.question_order,
             })
-
-            if question.material and question.material.transcript:
-                if part == 'part2':
-                    transcripts[qid] = question.material.transcript
-                elif part == 'part3' and question.material.material_id not in part3_material_ids:
-                    transcripts[qid] = question.material.transcript
-                    part3_material_ids.add(question.material.material_id)
 
         def calc_score(correct, total):
             return round((correct / total * 100), 2) if total else 0.0
@@ -282,7 +306,6 @@ def submit_test_answer(request):
 
         is_passed = total_score >= float(exam.passing_score)
 
-        # 儲存 ExamResult
         ExamResult.objects.create(
             session=session,
             total_questions=total_questions,
@@ -294,7 +317,6 @@ def submit_test_answer(request):
             completed_at=timezone.now(),
         )
 
-        # 更新 session 狀態
         session.status = 'completed'
         session.end_time = timezone.now()
         session.save()
@@ -313,6 +335,8 @@ def submit_test_answer(request):
                 'question_details': question_details,
                 'test_type': test_type,
                 'transcripts': transcripts,
+                'translations': translations,
+                'reading_passages': reading_passages, # 新增此欄位
                 'part_analysis': part_analysis,
                 'category_analysis': category_analysis,
             }
@@ -894,7 +918,7 @@ def get_daily_vocabulary(request):
 
     if already_sent_today:
         # 如果今天已經有任何單字被發送過，則不發送新單字
-        return JsonResponse({'message': '你今天已經領取過單字囉！請明天再來。', 'words': []})
+        return JsonResponse({'message': '你今天已經領取過單字囉！可至歷史單字區查看單字紀錄', 'words': []})
     
     # 獲取使用者已熟悉的單字 ID
     familiar_words_ids = UserVocabularyRecord.objects.filter(

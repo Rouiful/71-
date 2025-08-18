@@ -141,7 +141,12 @@
 }
 
 .word-details {
-    margin-bottom: 1.5rem;
+    /* 這是讓它填滿剩餘空間的關鍵 */
+    flex-grow: 1; 
+    /* 確保其下邊距不影響最後的對齊 */
+    margin-bottom: 0; 
+    /* 增加一個內邊距，以保持視覺上的分隔 */
+    padding-bottom: 1.5rem;
 }
 
 .word-text {

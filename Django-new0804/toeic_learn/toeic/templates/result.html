@@ -108,13 +108,64 @@
             margin-bottom: 10px;
             padding-left: 10px;
         }
+        
+        /* Part 6 & 7 文章的樣式 */
+        #reading-passage-section .analysis-section h3 {
+            display: flex;
+            align-items: center;
+            color: #343a40;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        #reading-passage-section .analysis-section h3 .fas {
+            margin-right: 10px;
+            color: #007bff;
+        }
+
+        #reading-passage-content {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        #reading-passage-content .passage-group {
+            margin-bottom: 30px;
+        }
+        
+        #reading-passage-content h4 {
+            display: flex;
+            align-items: center;
+            color: #4a90e2;
+            font-size: 1.2em;
+            margin: 0 0 10px 0;
+        }
+        
+        #reading-passage-content h4 .fas {
+            margin-right: 8px;
+        }
+
+        #reading-passage-content pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: inherit;
+            margin: 0;
+            line-height: 1.6;
+            color: #495057;
+        }
+        #reading-passage-note {
+            margin-top: 10px;
+            color: #6c757d;
+            font-size: 0.95em;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <button class="menu-btn" id="menu-btn">☰</button>
-        <h1>TOEIC學習平台</h1>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <h1>TOEIC學習平台</h1>        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <span class="result-title">測驗結果</span>
     </div>
     
@@ -180,6 +231,14 @@
                 </div>
             </div>
 
+            <div id="reading-passage-section" style="display:none; margin-bottom:30px;">
+                <div class="analysis-section">
+                    <h3><i class="fas fa-book-open"></i> 閱讀文章</h3>
+                    <div id="reading-passage-content"></div>
+                    <div id="reading-passage-note" style="margin-top:10px; color:#888; font-size:0.95em;"></div>
+                </div>
+            </div>
+
             <div class="answer-details">
                 <h3><i class="fas fa-list-alt"></i> 答題詳情</h3>
                 <div id="question-results">
@@ -215,7 +274,7 @@
         </button>
     </div>
 
-     <footer class="footer">
+    <footer class="footer">
         <div class="footer-container">
             <div class="contact-us">
                 <h3>聯絡我們</h3>
@@ -237,318 +296,383 @@
         </div>
     </footer>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            loadTestResult();
-        });
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        loadTestResult();
+    });
 
-        function loadTestResult() {
-            try {
-                const resultData = sessionStorage.getItem('test_result_data');
-                
-                if (!resultData) {
-                    showError('找不到測驗結果資料');
-                    return;
-                }
-
-                const data = JSON.parse(resultData);
-                console.log('Result data:', data);
-                console.log('後端傳來的原始資料:', data);
-                console.log('test_type:', data.test_type);
-                console.log('part_analysis 的鍵數量:', Object.keys(data.part_analysis || {}).length);
-                console.log('part_analysis:', data.part_analysis);
-                
-                // 關鍵修正：在渲染前對題目進行排序
-                if (data.question_details) {
-                    data.question_details.sort((a, b) => a.question_id - b.question_id);
-                }
-
-                handlePart3Transcript(data);
-                renderResult(data);
-                
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('result-content').style.display = 'block';
-                
-            } catch (error) {
-                console.error('Error loading result:', error);
-                showError('載入結果時發生錯誤：' + error.message);
-            }
-        }
-
-        function handlePart3Transcript(data) {
-            const transcriptContainer = document.getElementById('listening-script-content');
-            const section = document.getElementById('listening-script-section');
+    function loadTestResult() {
+        try {
+            const resultData = sessionStorage.getItem('test_result_data');
             
-            let part3Transcript = null;
-
-            if (data.question_details && data.transcripts) {
-                for (const question of data.question_details) {
-                    if (question.part === 'part3' && data.transcripts[question.question_id]) {
-                        part3Transcript = data.transcripts[question.question_id];
-                        break;
-                    }
-                }
-            }
-
-            if (part3Transcript) {
-                transcriptContainer.innerHTML = `<pre>${part3Transcript}</pre>`;
-                section.style.display = 'block';
-                document.getElementById('listening-script-note').textContent = '此為 Part 3 對話的完整文字稿';
-            } else {
-                section.style.display = 'none';
-            }
-        }
-
-        function renderQuestionResults(data) {
-            const container = document.getElementById('question-results');
-            if (!data.question_details || !Array.isArray(data.question_details)) {
-                container.innerHTML = '<p>無詳細答題資訊</p>';
+            if (!resultData) {
+                showError('找不到測驗結果資料');
                 return;
             }
 
-            let html = '';
-            // 使用排序後的 data.question_details
-            data.question_details.forEach((question, index) => {
-                const isCorrect = question.is_correct;
-                const statusClass = isCorrect ? 'correct' : 'incorrect';
-                const statusIcon = isCorrect ? 'fa-check-circle' : 'fa-times-circle';
-                const statusText = question.user_answer ? (isCorrect ? '正確' : '錯誤') : '未作答';
+            const data = JSON.parse(resultData);
+            console.log('Result data:', data);
+            
+            if (data.question_details) {
+                data.question_details.sort((a, b) => a.question_order - b.question_order);
+            }
+            
+            // 呼叫新的處理函式
+            handleReadingPassage(data);
+            handlePart3Transcript(data);
+            renderResult(data);
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('result-content').style.display = 'block';
+            
+        } catch (error) {
+            console.error('Error loading result:', error);
+            showError('載入結果時發生錯誤：' + error.message);
+        }
+    }
+
+    function handlePart3Transcript(data) {
+        const section = document.getElementById('listening-script-section');
+        const scriptContainer = document.getElementById('listening-script-content');
+        
+        let part3Transcript = null;
+        let part3Translation = null;
+
+        if (data.question_details && data.transcripts && data.translations) {
+            const displayedPart3 = new Set();
+            for (const question of data.question_details) {
                 const part = question.part;
-                
-                let optionsHtml = '';
-                if (question.options && Array.isArray(question.options)) {
-                    // 關鍵修改：篩選掉 Part 2 的 D 選項
-                    optionsHtml = question.options
-                        .filter(option => !(question.part === 'part2' && option.value.toUpperCase() === 'D'))
-                        .map(option => {
-                            const optVal = option.value.toLowerCase();
-                            const userAns = (question.user_answer || '').toLowerCase();
-                            const correctAns = (question.correct_answer || '').toLowerCase();
+                const questionId = question.question_id;
 
-                            let optionClass = 'option-item';
-                            let iconHtml = '<i class="fas fa-circle option-icon neutral-icon"></i>';
-
-                            if (optVal === userAns && optVal === correctAns) {
-                                optionClass += ' correct-option';
-                                iconHtml = '<i class="fas fa-check-circle option-icon correct-icon"></i>';
-                            } else if (optVal === userAns && optVal !== correctAns) {
-                                optionClass += ' incorrect-option';
-                                iconHtml = '<i class="fas fa-times-circle option-icon incorrect-icon"></i>';
-                            } else if (optVal === correctAns && optVal !== userAns) {
-                                optionClass += ' correct-option';
-                                iconHtml = '<i class="fas fa-check-circle option-icon correct-icon"></i>';
-                            }
-                            return `
-                                <div class="${optionClass}">
-                                    ${iconHtml}
-                                    <span class="option-label">${option.value.toUpperCase()}.</span>
-                                    <span class="option-text">${option.text}</span>
-                                </div>
-                            `;
-                        }).join('');
+                if (part === 'part3' && data.transcripts[questionId] && !displayedPart3.has(data.transcripts[questionId])) {
+                    part3Transcript = data.transcripts[questionId];
+                    part3Translation = data.translations[questionId];
+                    displayedPart3.add(data.transcripts[questionId]);
+                    break;
                 }
-                
-                const transcript = (part === 'part2' && data.transcripts && data.transcripts[question.question_id])
-                                 ? data.transcripts[question.question_id] 
-                                 : null;
+            }
+        }
 
-                html += `
-                    <div class="question-result ${statusClass}">
-                        <div class="question-header">
-                            <div class="question-info">
-                                <span class="question-number">題目 ${index + 1}</span>
-                                ${part ? `<span class="question-part">(${part.toUpperCase()})</span>` : ''}
-                            </div>
-                            <span class="question-status">
-                                <i class="fas ${statusIcon}"></i>
-                                ${statusText}
-                            </span>
-                        </div>
-                        <div class="question-content">
-                            ${question.question_text ? `<div class="question-text">${question.question_text}</div>` : ''}
-                            ${optionsHtml ? `<div class="options-container">${optionsHtml}</div>` : ''}
-                        </div>
-                        <div class="question-details">
-                            ${question.explanation ? `<div class="explanation"><p><strong>解釋：</strong>${question.explanation}</p></div>` : ''}
-                            ${transcript ? `
-                                <div class="transcript">
-                                    <h4><i class="fas fa-file-audio"></i> 文字稿</h4>
-                                    <pre>${transcript}</pre>
+        if (part3Transcript) {
+            let contentHtml = `
+                <div class="reading-passage-content">
+                    <h4><i class="fas fa-file-audio"></i> 完整文字稿</h4>
+                    <pre>${part3Transcript}</pre>
+                </div>
+            `;
+            
+            if (part3Translation) {
+                contentHtml += `
+                    <div class="translation" style="margin-top: 20px;">
+                        <h4><i class="fas fa-language"></i> 翻譯</h4>
+                        <pre>${part3Translation}</pre>
+                    </div>
+                `;
+            }
+
+            scriptContainer.innerHTML = contentHtml;
+            section.style.display = 'block';
+            document.getElementById('listening-script-note').textContent = '此為 Part 3 對話的完整文字稿與翻譯';
+        } else {
+            section.style.display = 'none';
+        }
+    }
+
+    // 修正後的 Part 6 & 7 處理函式，直接使用新的 reading_passages 列表
+    function handleReadingPassage(data) {
+        const section = document.getElementById('reading-passage-section');
+        const passageContainer = document.getElementById('reading-passage-content');
+        
+        let contentHtml = '';
+        
+        if (data.reading_passages && Array.isArray(data.reading_passages)) {
+            data.reading_passages.forEach(passage => {
+                if (passage.content) {
+                    contentHtml += `
+                        <div class="passage-group">
+                            <h4><i class="fas fa-book"></i> 閱讀文章</h4>
+                            <pre>${passage.content}</pre>
+                            ${passage.translation ? `
+                                <div class="translation" style="margin-top: 20px;">
+                                    <h4><i class="fas fa-language"></i> 文章翻譯</h4>
+                                    <pre>${passage.translation}</pre>
                                 </div>
                             ` : ''}
                         </div>
+                    `;
+                }
+            });
+        }
+        
+        if (contentHtml) {
+            passageContainer.innerHTML = contentHtml;
+            section.style.display = 'block';
+            document.getElementById('reading-passage-note').textContent = '';
+        } else {
+            section.style.display = 'none';
+        }
+    }
+
+function renderQuestionResults(data) {
+    const container = document.getElementById('question-results');
+    if (!data.question_details || !Array.isArray(data.question_details)) {
+        container.innerHTML = '<p>無詳細答題資訊</p>';
+        return;
+    }
+
+    let html = '';
+    data.question_details.forEach((question, index) => {
+        const isCorrect = question.is_correct;
+        const statusClass = isCorrect ? 'correct' : 'incorrect';
+        const statusIcon = isCorrect ? 'fa-check-circle' : 'fa-times-circle';
+        const statusText = question.user_answer ? (isCorrect ? '正確' : '錯誤') : '未作答';
+        const part = question.part;
+
+        let optionsHtml = '';
+        if (question.options && Array.isArray(question.options)) {
+            optionsHtml = question.options
+                .filter(option => !(question.part === 'part2' && option.value.toUpperCase() === 'D'))
+                .map(option => {
+                    const optVal = option.value.toLowerCase();
+                    const userAns = (question.user_answer || '').toLowerCase();
+                    const correctAns = (question.correct_answer || '').toLowerCase();
+
+                    let optionClass = 'option-item';
+                    let iconHtml = '<i class="fas fa-circle option-icon neutral-icon"></i>';
+
+                    if (optVal === userAns && optVal === correctAns) {
+                        optionClass += ' correct-option';
+                        iconHtml = '<i class="fas fa-check-circle option-icon correct-icon"></i>';
+                    } else if (optVal === userAns && optVal !== correctAns) {
+                        optionClass += ' incorrect-option';
+                        iconHtml = '<i class="fas fa-times-circle option-icon incorrect-icon"></i>';
+                    } else if (optVal === correctAns && optVal !== userAns) {
+                        optionClass += ' correct-option';
+                        iconHtml = '<i class="fas fa-check-circle option-icon correct-icon"></i>';
+                    }
+                    return `
+                        <div class="${optionClass}">
+                            ${iconHtml}
+                            <span class="option-label">${option.value.toUpperCase()}.</span>
+                            <span class="option-text">${option.text}</span>
+                        </div>
+                    `;
+                }).join('');
+        }
+
+        const transcript = (part === 'part2' && data.transcripts && data.transcripts[question.question_id]) ? data.transcripts[question.question_id] : null;
+        const translation = (part === 'part2' && data.translations && data.translations[question.question_id]) ? data.translations[question.question_id] : null;
+
+        // **這裡是修正後的程式碼：**
+        // 將文字稿與翻譯的 HTML 字串獨立組建
+        let transcriptHtml = '';
+        if (transcript) {
+            transcriptHtml = `
+                <div class="transcript">
+                    <h4><i class="fas fa-file-audio"></i> 文字稿</h4>
+                    <pre>${transcript}</pre>
+            `;
+            if (translation) {
+                transcriptHtml += `
+                    <div class="translation-divider"></div>
+                    <div class="translation-text">
+                        <pre>${translation}</pre>
                     </div>
                 `;
-            });
-            container.innerHTML = html;
+            }
+            transcriptHtml += `</div>`; // 閉合 div
         }
 
-        function renderFeedback(data) {
-            const container = document.getElementById('ai-feedback');
-            const suggestions = [];
-            const feedbackList = document.createElement('ul');
-            feedbackList.className = 'feedback-list';
+        html += `
+            <div class="question-result ${statusClass}">
+                <div class="question-header">
+                    <div class="question-info">
+                        <span class="question-number">題目 ${index + 1}</span>
+                        ${part ? `<span class="question-part">(${part.toUpperCase()})</span>` : ''}
+                    </div>
+                    <span class="question-status">
+                        <i class="fas ${statusIcon}"></i>
+                        ${statusText}
+                    </span>
+                </div>
+                
+                ${transcriptHtml}
 
-            // 根據總分給予整體建議
-            const accuracy = data.correct_answers && data.total_questions ?
-                Math.round((data.correct_answers / data.total_questions) * 100) : 0;
-            
-            if (accuracy >= 80) {
-                suggestions.push("表現優異！你的答題正確率很高，可以挑戰更進階的題目或加強弱點。");
-            } else if (accuracy >= 60) {
-                suggestions.push("表現良好，但仍有進步空間。建議針對錯誤較多的部分加強訓練。");
-            } else {
-                suggestions.push("正確率偏低，不用氣餒！建議從單字和文法基礎開始，逐步提升。");
-            }
+                <div class="question-content">
+                    ${question.question_text ? `<div class="question-text">${question.question_text}</div>` : ''}
+                    ${optionsHtml ? `<div class="options-container">${optionsHtml}</div>` : ''}
+                </div>
+                
+                <div class="question-details">
+                    ${question.explanation ? `<div class="explanation"><p><strong>解釋：</strong>${question.explanation}</p></div>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
 
-            // 根據 Part 的表現給予建議
-            if (data.part_analysis) {
-                const partNames = {
-                    'part2': 'Part 2 (問答)',
-                    'part3': 'Part 3 (簡短對話)',
-                    'part5': 'Part 5 (單句填空)',
-                    'part6': 'Part 6 (文章填空)',
-                    'part7': 'Part 7 (單篇閱讀)'
-                };
-                for (const [part, analysis] of Object.entries(data.part_analysis)) {
-                    const percentage = analysis.total > 0 ? (analysis.correct / analysis.total) : 0;
-                    if (part.startsWith('part') && percentage < 0.6 && analysis.total > 0) {
-                        if (part === 'part2' || part === 'part3') {
-                            suggestions.push(`你在${partNames[part]}的聽力表現較弱，可能是因為無法在短時間內理解對話。建議多進行聽力精聽練習。`);
-                        } else {
-                            suggestions.push(`你在${partNames[part]}的閱讀表現不佳，可能是因為閱讀速度或對特定題型不熟悉。建議多練習文章精讀與解題技巧。`);
-                        }
-                    }
-                }
-            }
+    function renderFeedback(data) {
+        const container = document.getElementById('ai-feedback');
+        const suggestions = [];
+        const feedbackList = document.createElement('ul');
+        feedbackList.className = 'feedback-list';
 
-            // 根據題目類別表現給予建議
-            if (data.category_analysis) {
-                const categoryNames = {
-                    'tense': '時態',
-                    'pos': '詞性',
-                    'syntax': '句型結構',
-                    'vocab': '單字',
-                };
-                for (const [category, analysis] of Object.entries(data.category_analysis)) {
-                    const percentage = analysis.total > 0 ? (analysis.correct / analysis.total) : 0;
-                    if (percentage < 0.6 && analysis.total > 0) {
-                        suggestions.push(`你在「${categoryNames[category] || category}」類別的正確率較低，建議多加強相關文法或單字練習。`);
-                    }
-                }
-            }
-            
-            // 如果沒有具體建議，給出預設建議
-            if (suggestions.length === 0) {
-                suggestions.push('本次測驗表現平穩，請持續保持！');
-            }
-
-            suggestions.forEach(s => {
-                const li = document.createElement('li');
-                li.innerHTML = s;
-                feedbackList.appendChild(li);
-            });
-
-            container.innerHTML = '';
-            container.appendChild(feedbackList);
+        const accuracy = data.correct_answers && data.total_questions ?
+            Math.round((data.correct_answers / data.total_questions) * 100) : 0;
+        
+        if (accuracy >= 80) {
+            suggestions.push("表現優異！你的答題正確率很高，可以挑戰更進階的題目或加強弱點。");
+        } else if (accuracy >= 60) {
+            suggestions.push("表現良好，但仍有進步空間。建議針對錯誤較多的部分加強訓練。");
+        } else {
+            suggestions.push("正確率偏低，不用氣餒！建議從單字和文法基礎開始，逐步提升。");
         }
 
-        function generateAnalysisList(analysisData) {
-            let html = '';
-            // 這裡已經調整為你的四個類別
-            const analysisNames = {
+        if (data.part_analysis) {
+            const partNames = {
                 'part2': 'Part 2 (問答)',
                 'part3': 'Part 3 (簡短對話)',
                 'part5': 'Part 5 (單句填空)',
                 'part6': 'Part 6 (文章填空)',
-                'part7': 'Part 7 (單篇閱讀)',
+                'part7': 'Part 7 (單篇閱讀)'
+            };
+            for (const [part, analysis] of Object.entries(data.part_analysis)) {
+                const percentage = analysis.total > 0 ? (analysis.correct / analysis.total) : 0;
+                if (part.startsWith('part') && percentage < 0.6 && analysis.total > 0) {
+                    if (part === 'part2' || part === 'part3') {
+                        suggestions.push(`你在${partNames[part]}的聽力表現較弱，可能是因為無法在短時間內理解對話。建議多進行聽力精聽練習。`);
+                    } else {
+                        suggestions.push(`你在${partNames[part]}的閱讀表現不佳，可能是因為閱讀速度或對特定題型不熟悉。建議多練習文章精讀與解題技巧。`);
+                    }
+                }
+            }
+        }
+
+        if (data.category_analysis) {
+            const categoryNames = {
                 'tense': '時態',
                 'pos': '詞性',
                 'syntax': '句型結構',
                 'vocab': '單字',
             };
-
-            if (!analysisData) {
-                return '';
-            }
-
-            for (const [key, item] of Object.entries(analysisData)) {
-                if (item.total > 0) {
-                    const percentage = item.total > 0 ? Math.round((item.correct / item.total) * 100) : 0;
-                    const displayName = analysisNames[key] || key;
-                    html += `
-                        <div class="analysis-item">
-                            <span>${displayName}：答對 ${item.correct} 題 / 共 ${item.total} 題</span>
-                            <span class="percentage">${percentage}%</span>
-                        </div>
-                    `;
-                }
-            }
-            return html;
-        }
-
-        function renderAnalysisSections(data) {
-            const partAnalysisContainer = document.getElementById('part-analysis-list');
-            const categoryAnalysisContainer = document.getElementById('category-analysis-list');
-            const personalAnalysisSection = document.getElementById('personal-analysis-section');
-
-            const partAnalysisHtml = data.part_analysis ? generateAnalysisList(data.part_analysis) : '';
-            const categoryAnalysisHtml = data.category_analysis ? generateAnalysisList(data.category_analysis) : '';
-
-            if (partAnalysisHtml || categoryAnalysisHtml) {
-                personalAnalysisSection.style.display = 'block';
-                if (partAnalysisHtml) {
-                    partAnalysisContainer.innerHTML = `
-                        <h3><i class="fas fa-chart-pie"></i> 各部分表現</h3>
-                        ${partAnalysisHtml}
-                    `;
-                }
-                if (categoryAnalysisHtml) {
-                    categoryAnalysisContainer.innerHTML = `
-                        <h3><i class="fas fa-tags"></i> 題目類別分析</h3>
-                        ${categoryAnalysisHtml}
-                    `;
+            for (const [category, analysis] of Object.entries(data.category_analysis)) {
+                const percentage = analysis.total > 0 ? (analysis.correct / analysis.total) : 0;
+                if (percentage < 0.6 && analysis.total > 0) {
+                    suggestions.push(`你在「${categoryNames[category] || category}」類別的正確率較低，建議多加強相關文法或單字練習。`);
                 }
             }
         }
-
-        function renderResult(data) {
-            const totalQuestions = data.total_questions || 0;
-            const correctAnswers = data.correct_answers || 0;
-            const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
-            
-            document.getElementById('total-score').textContent = correctAnswers;
-            document.getElementById('max-score').textContent = totalQuestions;
-            document.getElementById('score-percentage').textContent = accuracy + '% 正確';
-
-            document.getElementById('completion-time').textContent = new Date().toLocaleString('zh-TW');
-            document.getElementById('total-questions').textContent = totalQuestions;
-            document.getElementById('test-type').textContent = data.test_type || '閱讀測驗';
-
-            document.getElementById('correct-answers').textContent = correctAnswers;
-            document.getElementById('incorrect-answers').textContent = totalQuestions - correctAnswers;
-            document.getElementById('accuracy-rate').textContent = accuracy + '%';
-
-            renderQuestionResults(data);
-            renderFeedback(data);
-            renderAnalysisSections(data);
+        
+        if (suggestions.length === 0) {
+            suggestions.push('本次測驗表現平穩，請持續保持！');
         }
 
-        function showError(message) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('result-content').style.display = 'none';
-            document.getElementById('error-message').style.display = 'block';
-            document.getElementById('error-text').textContent = message;
+        suggestions.forEach(s => {
+            const li = document.createElement('li');
+            li.innerHTML = s;
+            feedbackList.appendChild(li);
+        });
+
+        container.innerHTML = '';
+        container.appendChild(feedbackList);
+    }
+
+    function generateAnalysisList(analysisData) {
+        let html = '';
+        const analysisNames = {
+            'part2': 'Part 2 (問答)',
+            'part3': 'Part 3 (簡短對話)',
+            'part5': 'Part 5 (單句填空)',
+            'part6': 'Part 6 (文章填空)',
+            'part7': 'Part 7 (單篇閱讀)',
+            'tense': '時態',
+            'pos': '詞性',
+            'syntax': '句型結構',
+            'vocab': '單字',
+        };
+
+        if (!analysisData) {
+            return '';
         }
 
-        function retakeTest() {
-            sessionStorage.removeItem('test_result_data');
-            window.location.href = '{% url "test" %}';
+        for (const [key, item] of Object.entries(analysisData)) {
+            if (item.total > 0) {
+                const percentage = item.total > 0 ? Math.round((item.correct / item.total) * 100) : 0;
+                const displayName = analysisNames[key] || key;
+                html += `
+                    <div class="analysis-item">
+                        <span>${displayName}：答對 ${item.correct} 題 / 共 ${item.total} 題</span>
+                        <span class="percentage">${percentage}%</span>
+                    </div>
+                `;
+            }
         }
+        return html;
+    }
 
-        function viewRecord() {
-            window.location.href = '{% url "record" %}';
+    function renderAnalysisSections(data) {
+        const partAnalysisContainer = document.getElementById('part-analysis-list');
+        const categoryAnalysisContainer = document.getElementById('category-analysis-list');
+        const personalAnalysisSection = document.getElementById('personal-analysis-section');
+
+        const partAnalysisHtml = data.part_analysis ? generateAnalysisList(data.part_analysis) : '';
+        const categoryAnalysisHtml = data.category_analysis ? generateAnalysisList(data.category_analysis) : '';
+
+        if (partAnalysisHtml || categoryAnalysisHtml) {
+            personalAnalysisSection.style.display = 'block';
+            if (partAnalysisHtml) {
+                partAnalysisContainer.innerHTML = `
+                    <h3><i class="fas fa-chart-pie"></i> 各部分表現</h3>
+                    ${partAnalysisHtml}
+                `;
+            }
+            if (categoryAnalysisHtml) {
+                categoryAnalysisContainer.innerHTML = `
+                    <h3><i class="fas fa-tags"></i> 題目類別分析</h3>
+                    ${categoryAnalysisHtml}
+                `;
+            }
         }
-    </script>
+    }
+
+    function renderResult(data) {
+        const totalQuestions = data.total_questions || 0;
+        const correctAnswers = data.correct_answers || 0;
+        const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+        
+        document.getElementById('total-score').textContent = correctAnswers;
+        document.getElementById('max-score').textContent = totalQuestions;
+        document.getElementById('score-percentage').textContent = accuracy + '% 正確';
+
+        document.getElementById('completion-time').textContent = new Date().toLocaleString('zh-TW');
+        document.getElementById('total-questions').textContent = totalQuestions;
+        document.getElementById('test-type').textContent = data.test_type || '閱讀測驗';
+
+        document.getElementById('correct-answers').textContent = correctAnswers;
+        document.getElementById('incorrect-answers').textContent = totalQuestions - correctAnswers;
+        document.getElementById('accuracy-rate').textContent = accuracy + '%';
+
+        renderQuestionResults(data);
+        renderFeedback(data);
+        renderAnalysisSections(data);
+    }
+
+    function showError(message) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('result-content').style.display = 'none';
+        document.getElementById('error-message').style.display = 'block';
+        document.getElementById('error-text').textContent = message;
+    }
+
+    function retakeTest() {
+        sessionStorage.removeItem('test_result_data');
+        window.location.href = '{% url "test" %}';
+    }
+
+    function viewRecord() {
+        window.location.href = '{% url "record" %}';
+    }
+</script>
 </body>
 </html>
