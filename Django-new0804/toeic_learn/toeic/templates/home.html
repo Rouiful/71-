@@ -5,25 +5,353 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TOEIC學習平台</title>
-    <link rel="stylesheet" href="{% static 'css/common.css' %}">
+    <link rel="stylesheet" href="{% static 'css/common.css' %}"> 
     <link rel="stylesheet" href="{% static 'css/home.css' %}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="{% static 'script/all.js' %}"></script>
+
+<style>
+    /* 頁面通用樣式 */
+    body {
+        font-family: sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f7f9fc;
+        color: #333;
+    }
+
+    /* 導覽列的黏性效果 */
+    .header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+
+    /* 英雄區塊 */
+    .hero-section {
+        margin-top: 50px; 
+        padding: 120px 20px 80px 20px; 
+        text-align: center;
+        color: #fff;
+        background: linear-gradient(rgba(0, 86, 179, 0.8), rgba(0, 86, 179, 0.8)), url('https://images.unsplash.com/photo-1542435503-9d2d0c2420f8') no-repeat center center/cover;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        position: relative;
+    }
+    .hero-section h1 {
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+        animation: fadeIn 1s ease-in-out;
+        color: #ffffff;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        transition: opacity 0.5s ease-in-out; /* 標語輪播的過渡效果 */
+    }
+    .hero-section p {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        animation: fadeIn 1.5s ease-in-out;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .cta-button {
+        display: inline-block;
+        background-color: #ff9900;
+        color: #fff;
+        padding: 15px 40px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 1.1rem;
+        transition: background-color 0.3s, transform 0.3s;
+        box-shadow: 0 5px 15px rgba(255, 153, 0, 0.4);
+    }
+    .cta-button:hover {
+        background-color: #e68a00;
+        transform: translateY(-3px);
+    }
+    .cta-button:active {
+        transform: scale(0.98);
+        background-color: #d87d00;
+    }
+    .scroll-down-indicator {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        animation: bounce 2s infinite;
+    }
+    .scroll-down-indicator i {
+        font-size: 2em;
+        color: #fff;
+    }
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-10px);
+        }
+        60% {
+            transform: translateY(-5px);
+        }
+    }
+
+    /* 交錯佈局的功能展示區塊 */
+    .feature-showcase-section {
+        padding: 60px 20px 80px 20px;
+    }
+    .showcase-item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 50px;
+        margin-bottom: 80px;
+        flex-wrap: wrap;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .showcase-item.reverse {
+        flex-direction: row-reverse;
+    }
+    .showcase-image {
+        width: 100%;
+        max-width: 500px;
+        height: 350px;
+        background-size: cover;
+        background-position: center;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .showcase-content {
+        max-width: 500px;
+        padding: 20px;
+    }
+    .showcase-content h2 {
+        font-size: 2rem;
+        color: #0056b3;
+        margin-bottom: 20px;
+    }
+    .showcase-content p {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #555;
+        margin-bottom: 30px;
+    }
+    .cta-button-small {
+        display: inline-block;
+        background-color: #0056b3;
+        color: #fff;
+        padding: 12px 30px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 1rem;
+        transition: background-color 0.3s, transform 0.3s;
+    }
+    .cta-button-small:hover {
+        background-color: #004494;
+        transform: translateY(-2px);
+    }
+    @media (max-width: 900px) {
+        .showcase-item, .showcase-item.reverse {
+            flex-direction: column;
+            text-align: center;
+        }
+        .showcase-image {
+            margin-bottom: 30px;
+        }
+    }
+
+    /* 如何開始區塊 */
+    .how-to-start-section {
+        padding: 80px 20px;
+        text-align: center;
+    }
+    .how-to-start-section h2 {
+        font-size: 2.5rem;
+        margin-bottom: 60px;
+        color: #0056b3;
+    }
+    .steps-container {
+        display: flex;
+        justify-content: center;
+        gap: 50px;
+        flex-wrap: wrap;
+    }
+    .step-item {
+        max-width: 250px;
+        text-align: center;
+    }
+    .step-item .icon-circle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: #0056b3;
+        color: #fff;
+        font-size: 2rem;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .step-item h3 {
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+    }
+    .step-item p {
+        color: #777;
+    }
+    
+    /* 部落格區塊 */
+    .blog-section {
+        padding: 80px 20px;
+        background-color: #f0f4f8;
+        text-align: center;
+    }
+    .blog-section h2 {
+        font-size: 2.5rem;
+        margin-bottom: 60px;
+    }
+    .blog-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .blog-card {
+        background-color: #ffffff;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        transition: transform 0.3s, box-shadow 0.3s;
+        text-align: left;
+    }
+    .blog-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    .blog-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+        color: #0056b3;
+    }
+    .blog-card p {
+        color: #777;
+        line-height: 1.6;
+    }
+    .blog-card a.read-more {
+        display: inline-block;
+        margin-top: 15px;
+        color: #ff9900;
+        font-weight: bold;
+        text-decoration: none;
+    }
+    
+    /* 專案核心特色 (從features-section複製並修改) */
+    .features-section-moved {
+        padding: 80px 20px;
+        margin-top: 60px;
+        text-align: center;
+        background-color: #fff;
+        border-radius: 25px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .features-section-moved h2 {
+        font-size: 2.5rem;
+        margin-bottom: 60px;
+    }
+    .feature-grid-moved {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 40px;
+    }
+    .feature-card-moved {
+        background-color: #f7f9fc;
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .feature-card-moved:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .feature-card-moved i {
+        font-size: 3rem;
+        color: #0056b3;
+        margin-bottom: 20px;
+    }
+    .feature-card-moved h3 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+    }
+    .feature-card-moved p {
+        color: #777;
+    }
+    .feature-image-placeholder-moved {
+        margin-top: 20px;
+        height: 200px;
+        background-color: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+        background-size: cover;
+        background-position: center;
+    }
+
+    /* 專題結語與展示區塊 */
+    .project-summary-section {
+        background-color: #f7f9fc;
+        padding: 80px 20px;
+        text-align: center;
+    }
+    .project-summary-section h2 {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+    }
+    .project-summary-section p {
+        max-width: 800px;
+        margin: 0 auto 40px;
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #555;
+    }
+
+    /* 淡入滑入動畫效果 */
+    .fade-in-up {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+    .fade-in-up.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+</style>
 </head>
 <body {% if not user.is_authenticated %}class="no-auth"{% endif %}>
     <div class="header">
         <button class="menu-btn" id="menu-btn">☰</button>
-        <h1>TOEIC學習平台</h1>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <h1>TOEIC學習平台</h1>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <div class="nav-buttons">
             <a href="{% url 'home' %}" target="_self">
                 <button class="nav-btn {% if request.path == '/' %}current{% endif %}">
                     <i class="fas fa-home"></i> 首頁
                 </button>
             </a>
+        
             <a href="{% url 'test' %}" target="_self">
                 <button class="nav-btn {% if request.path == '/test/' %}current{% endif %}">
                     <i class="fas fa-file-alt"></i> 測驗平台
                 </button>
             </a>
+        
             {% if user.is_authenticated %}
                 <a href="{% url 'history' %}" target="_self">
                     <button class="nav-btn {% if request.path == '/history/' %}current{% endif %}">
@@ -50,52 +378,71 @@
             {% endif %}
         </div>
     </div>
-    {% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
 
     <div class="main-content">
-        <div class="content">
-            <div class="marquee-container">
-                <div class="marquee-text">
-                    <h1>探索英語學習的無限可能，讓您的進步從這裡開始，打造專屬於您的高效多益學習之旅！</h1>
+        <div class="hero-section">
+            <div class="hero-content">
+                <h1 id="slogan-text">智慧多益學習平台</h1>
+                <p>運用 AI 技術，為多益應試者提供個人化、高效的學習解決方案。</p>
+                <a href="{% if user.is_authenticated %}{% url 'test' %}{% else %}{% url 'login' %}{% endif %}" class="cta-button">開始探索</a>            </div>
+            <div class="scroll-down-indicator">
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
+        
+        <div class="feature-showcase-section">
+            <div class="showcase-item">
+                <img src="{% static 'img/logo.png' %}" alt="多益考試簡介圖示" class="showcase-inline-image">
+                <div class="showcase-content fade-in-up">
+                    <h2>欸!愛多益 簡介</h2>
+                    <p>我們的平台運用 AI 技術，為多益應試者提供高效的學習解決方案。從即時的數據分析到多元的模擬測驗，讓您在短時間內精準提升應試能力，高效達成高分目標。</p>
                 </div>
             </div>
         </div>
-        <div class="scroll-down">⬇ 滑動以查看更多內容</div>
-
-        <div class="carousel">
-            <div class="carousel-images" id="carousel-images">
-                <img src="https://blog.tripbaa.com/wp-content/uploads/2020/10/plan_2020090316351725750_b.jpg"
-                alt="Image 1" class="carousel-image">
-                <img src="https://www.necoast-nsa.gov.tw/FileArtPic.ashx?id=791&w=600&h=400"
-                alt="Image 2" class="carousel-image">
-                <img src="https://pgw.udn.com/gw/photo.php?u=https://uc.udn.com.tw/photo/2024/09/25/realtime/30605412.jpg&s=Y&x=0&y=0&sw=7629&sh=5089&exp=3600"
-                alt="Image 3" class="carousel-image">
+        <div class="how-to-start-section">
+            <h2>如何開始您的學習之旅？</h2>
+            <div class="steps-container">
+                <div class="step-item fade-in-up">
+                    <div class="icon-circle"><i class="fas fa-user-plus"></i></div>
+                    <h3>註冊帳號</h3>
+                    <p>只需幾分鐘，快速建立您的個人學習檔案，開啟專屬的學習體驗。</p>
+                </div>
+                <div class="step-item fade-in-up">
+                    <div class="icon-circle"><i class="fas fa-pencil-alt"></i></div>
+                    <h3>開始練習</h3>
+                    <p>系統將根據您的程度與需求，動態生成個人化練習題，隨時隨地開始學習。</p>
+                </div>
+                <div class="step-item fade-in-up">
+                    <div class="icon-circle"><i class="fas fa-chart-line"></i></div>
+                    <h3>個人學習路徑</h3>
+                    <p>透過視覺化數據圖表，您可以清晰掌握自己的學習進度與表現，精準補強。</p>
+                </div>
             </div>
-            <button class="carousel-button carousel-button-left" id="prevBtn">❮</button>
-            <button class="carousel-button carousel-button-right" id="nextBtn">❯</button>
+        </div>
+
+        <div class="blog-section">
+            <h2>最新多益學習資訊</h2>
+            <div class="blog-grid">
+                <div class="blog-card fade-in-up">
+                    <h3>多益官方試題範例</h3>
+                    <p>透過官方提供的聽力與閱讀試題，熟悉考試題型與作答節奏，為正式考試做好萬全準備。</p>
+                    <a href="https://www.toeic.com.tw/sample-test/toeic-listening-reading/sample01.html" class="read-more" target="_blank">
+                        閱讀更多 <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="blog-card fade-in-up">
+                    <h3>多益聽力訓練技巧</h3>
+                    <p>掌握情境式聽力訓練法，從簡短對話到長篇聽力，有效提升您的聽力理解與應答速度。</p>
+                    <a href="#" class="read-more">閱讀更多 <i class="fas fa-arrow-right"></i></a>
+                </div>
+                <div class="blog-card fade-in-up">
+                    <h3>高效背單字：科學方法大公開</h3>
+                    <p>告別死記硬背，透過科學方法，讓單字牢牢地印在腦中。</p>
+                    <a href="#" class="read-more">閱讀更多 <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
         </div>
     </div>
-
-    <div id="ai-chatbot-container" style="display: none;">
-        <div id="chatbot-header">
-            多益單字小幫手
-            <button id="chatbot-close-btn">&times;</button>
-        </div>
-        <div id="chatbot-messages">
-            </div>
-        <div id="chatbot-input-area">
-            <input type="text" id="user-input" placeholder="輸入「開始」來領取單字...">
-            <button id="send-btn">發送</button>
-        </div>
-    </div>
-    <button id="chatbot-toggle-btn">多益單字小幫手</button>
-
 
     <footer class="footer">
         <div class="footer-container">
@@ -103,233 +450,268 @@
                 <h3>聯絡我們</h3>
                 <ul>
                     <li><i class="fas fa-phone"></i><a href="tel:02 3322 2777"> 電話：02 3322 2777</a></li>
-                    <li><i class="fas fa-map"></i><a href="https://maps.google.com/maps?q=100台北市中正區濟南路一段321號" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
-                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3614.779774567228!2d121.52495111500305!3d25.04253398396551!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a96937e008c7%3A0x6b8c9d4b0d0a25b!2zMTAw5Y-w5b-Y5L-h5b-Y5L-h5YyX5bmz6LSi6LSi6JukMTUx6JukNTk26Juk!5e0!3m2!1szh-TW!2stw!4v1652199732731!5m2!1szh-TW!2stw"
-                        height="250"
-                        style="border:0;"
-                        allowfullscreen=""
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade">
+                    <li><i class="fas fa-map"></i><a href="https://maps.app.goo.gl/3NMVwufcbbTrfQNz6" target="_blank"> 地址：100台北市中正區濟南路一段321號</a></li>
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d14459.01851827243!2d121.5254698!3d25.0423998!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442a970a11a84ad%3A0x58e05f2528812097!2z5ZyL56uL6Ie65YyX5ZWG5qWt5aSn5a24!5e0!3m2!1szh-TW!2stw!4v1728891709611!5m2!1szh-TW!2stw" 
+                    width="300"
+                    height="250"
+                    style="border:0;"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade">
                     </iframe>
                 </ul>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>© 2025 TOEIC學習平台 版權所有</p>
+            <p>© 2024 TOEIC學習平台 版權所有</p>
         </div>
     </footer>
+    
+    <div id="ai-chatbot-container" style="display: none;">
+        <div id="chatbot-header">
+            多益單字小幫手
+            <button id="chatbot-close-btn">×</button>
+        </div>
+        <div id="chatbot-messages">
+        </div>
+        <div id="chatbot-input-area">
+            <input type="text" id="user-input" placeholder="輸入「開始」來領取單字...">
+            <button id="send-btn">發送</button>
+        </div>
+    </div>
+    <button id="chatbot-toggle-btn">多益單字小幫手</button>
 
     <script>
-    // ✅ 根據後端傳來的使用者名稱，建立一個唯一的 localStorage key
-    const currentUsername = "{{ user.nickname }}";
-    const storageKey = `chatbot_history_${currentUsername}`;
-    // 檢查使用者是否已登入
-    const isAuthenticated = "{{ user.is_authenticated }}" === "True";
+        // 英雄區塊標語輪播
+        const sloganText = document.getElementById('slogan-text');
+        const slogans = [
+            "智慧多益學習平台",
+            "個人化英語學習方案",
+            "從概念到實踐：AI 學習系統"
+        ];
+        let currentSloganIndex = 0;
+        setInterval(() => {
+            currentSloganIndex = (currentSloganIndex + 1) % slogans.length;
+            sloganText.style.opacity = '0';
+            setTimeout(() => {
+                sloganText.textContent = slogans[currentSloganIndex];
+                sloganText.style.opacity = '1';
+            }, 500);
+        }, 5000);
+
+        // 滾動時淡入滑入動畫
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.2
+        });
+
+        document.querySelectorAll('.fade-in-up').forEach(element => {
+            observer.observe(element);
+        });
+
+        // ✅ 根據後端傳來的使用者名稱，建立一個唯一的 localStorage key
+        const currentUsername = "{{ user.username }}";
+        const storageKey = `chatbot_history_${currentUsername}`;
+        // 檢查使用者是否已登入
+        const isAuthenticated = "{{ user.is_authenticated }}" === "True";
 
 
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.startsWith(name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.startsWith(name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
                 }
             }
-        }
-        return cookieValue;
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const chatbotContainer = document.getElementById('ai-chatbot-container');
-        const chatbotToggleBtn = document.getElementById('chatbot-toggle-btn');
-        const chatbotCloseBtn = document.getElementById('chatbot-close-btn');
-        const chatbotMessages = document.getElementById('chatbot-messages');
-        const userInput = document.getElementById('user-input');
-        const sendBtn = document.getElementById('send-btn');
-        const csrfToken = getCookie('csrftoken');
-        const logoutForm = document.getElementById('logout-form');
-
-        // 如果使用者未登入，則直接結束，不執行 AI 機器人相關的邏輯
-        if (!isAuthenticated) {
-            // 讓聊天機器人按鈕隱藏，以避免未登入使用者看到
-            if (chatbotToggleBtn) {
-                chatbotToggleBtn.style.display = 'none';
-            }
-            return;
+            return cookieValue;
         }
 
-        // ✅ 負責為所有單字卡片按鈕綁定事件（修正了重複綁定的問題）
-        function bindFamiliarButtonEvents() {
-            const buttons = chatbotMessages.querySelectorAll('.mark-familiar-btn');
-            buttons.forEach(button => {
-                // 移除舊的事件監聽器，避免重複執行
-                const newButton = button.cloneNode(true);
-                button.parentNode.replaceChild(newButton, button);
+        // 我將原本在 DOMContentLoaded 內的程式碼移到外面，並用一個新的 DOMContentLoaded 來包裹，以確保所有元素都已載入
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatbotContainer = document.getElementById('ai-chatbot-container');
+            const chatbotToggleBtn = document.getElementById('chatbot-toggle-btn');
+            const chatbotCloseBtn = document.getElementById('chatbot-close-btn');
+            const chatbotMessages = document.getElementById('chatbot-messages');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const csrfToken = getCookie('csrftoken');
+            const logoutForm = document.getElementById('logout-form');
 
-                newButton.addEventListener('click', function(e) {
-                    const wordId = e.target.dataset.wordId;
-                    markWordAsFamiliar(wordId);
-                });
-            });
-        }
-
-        // 從 localStorage 載入對話紀錄
-        function loadChatHistory() {
-            const history = localStorage.getItem(storageKey);
-            if (history) {
-                chatbotMessages.innerHTML = history;
-                bindFamiliarButtonEvents();
-            } else {
-                addMessage('robot', '哈囉！我是你的 AI 學習小幫手。輸入「開始」來領取你今天的單字吧！');
-            }
-        }
-
-        // 將對話紀錄保存到 localStorage
-        function saveChatHistory() {
-            localStorage.setItem(storageKey, chatbotMessages.innerHTML);
-        }
-
-        function addMessage(sender, htmlContent, isVocabCard = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('chatbot-message', `${sender}-message`);
-            messageDiv.innerHTML = htmlContent;
-            chatbotMessages.appendChild(messageDiv);
-            // ✅ 每次新增訊息後都自動滾動到最底部
-            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
-            saveChatHistory();
-            if (isVocabCard) {
-                bindFamiliarButtonEvents();
-            }
-        }
-
-        // ✅ 修正了開啟/關閉聊天視窗的邏輯
-        chatbotToggleBtn.addEventListener('click', () => {
-            chatbotContainer.style.display = 'flex';
-            chatbotToggleBtn.style.display = 'none'; // 開啟時隱藏按鈕
-            // ✅ 新增：開啟聊天視窗時自動滾動至最底部
-            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
-        });
-
-        chatbotCloseBtn.addEventListener('click', () => {
-            chatbotContainer.style.display = 'none';
-            chatbotToggleBtn.style.display = 'block'; // 關閉時顯示按鈕
-        });
-
-        // 🚨 修正：移除登出時清除 localStorage 的程式碼，以保留聊天紀錄
-        if (logoutForm) {
-            logoutForm.addEventListener('submit', function() {
-                // 移除此行程式碼，以保留聊天紀錄
-            });
-        }
-
-        function sendMessage() {
-            const message = userInput.value.trim();
-            if (message === '') return;
-
-            addMessage('user', message);
-            userInput.value = '';
-
-            if (message.toLowerCase() === '開始') {
-                fetchDailyVocabulary();
-            } else {
-                addMessage('robot', '抱歉，我目前只能識別「開始」指令來提供單字喔！');
-            }
-        }
-
-        sendBtn.addEventListener('click', sendMessage);
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        function fetchDailyVocabulary() {
-            fetch('/api/chatbot/vocabulary/', {
-                method: 'GET',
-                headers: { 'X-CSRFToken': csrfToken }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.words && data.words.length > 0) {
-                    addMessage('robot', data.message);
-                    data.words.forEach(word => {
-                        const card = `
-                            <div class="vocab-card">
-                                <h4>
-                                    <span class="word-text">${word.word}</span>
-                                    <span class="word-translation">${word.translation}</span>
-                                    <span class="pronunciation-text">${word.pronunciation}</span>
-                                    <span class="part-of-speech">${word.part_of_speech}</span>
-                                </h4>
-                                <p class="example-sentence">例句：${word.example_sentence}</p>
-                                <p class="example-translation">翻譯：${word.example_translation}</p>
-                                <button class="mark-familiar-btn" data-word-id="${word.word_id}">我已熟悉這個單字</button>
-                            </div>
-                        `;
-                        addMessage('robot', card, true);
-                    });
-                } else {
-                    addMessage('robot', data.message);
+            // 如果使用者未登入，則直接結束，不執行 AI 機器人相關的邏輯
+            if (!isAuthenticated) {
+                if (chatbotToggleBtn) {
+                    chatbotToggleBtn.style.display = 'none';
                 }
-            })
-            .catch(error => {
-                console.error('Error fetching vocabulary:', error);
-                addMessage('robot', '糟糕！無法取得單字，請稍後再試。');
-            });
-        }
-
-        // ✅ 修正了 markWordAsFamiliar 函式，確保標記失敗時按鈕狀態能恢復
-        function markWordAsFamiliar(wordId) {
-            const button = chatbotMessages.querySelector(`button[data-word-id="${wordId}"]`);
-            if (!button) {
                 return;
             }
 
-            // 暫時鎖定按鈕，並顯示「處理中...」
-            const originalText = button.textContent;
-            button.disabled = true;
-            button.textContent = '處理中...';
-            button.classList.add('loading'); 
+            // 負責為所有單字卡片按鈕綁定事件
+            function bindFamiliarButtonEvents() {
+                const buttons = chatbotMessages.querySelectorAll('.mark-familiar-btn');
+                buttons.forEach(button => {
+                    const newButton = button.cloneNode(true);
+                    button.parentNode.replaceChild(newButton, button);
+                    newButton.addEventListener('click', function(e) {
+                        const wordId = e.target.dataset.wordId;
+                        markWordAsFamiliar(wordId);
+                    });
+                });
+            }
 
-            fetch('/api/chatbot/mark-familiar/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({ word_id: wordId })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    // 如果伺服器回傳非 200 狀態碼，拋出錯誤
-                    throw new Error('Server responded with an error!');
+            // 從 localStorage 載入對話紀錄
+            function loadChatHistory() {
+                const history = localStorage.getItem(storageKey);
+                if (history) {
+                    chatbotMessages.innerHTML = history;
+                    bindFamiliarButtonEvents();
+                } else {
+                    addMessage('robot', '哈囉！我是你的 AI 學習小幫手。輸入「開始」來領取你今天的單字吧！');
                 }
-                return response.json();
-            })
-            .then(data => {
-                // 請求成功，更新按鈕狀態
-                button.textContent = '已標記';
-                button.classList.add('marked'); 
-                button.classList.remove('loading');
-                addMessage('robot', data.message);
-            })
-            .catch(error => {
-                console.error('Error marking word as familiar:', error);
-                // 🚨 發生錯誤時，將按鈕狀態恢復！
-                button.disabled = false;
-                button.textContent = originalText;
-                button.classList.remove('loading');
-                // 顯示錯誤訊息
-                addMessage('robot', '標記單字時發生錯誤，請稍後再試。');
-            });
-        }
+            }
 
-        // 頁面載入時執行
-        loadChatHistory();
-    });
-</script>
+            // 將對話紀錄保存到 localStorage
+            function saveChatHistory() {
+                localStorage.setItem(storageKey, chatbotMessages.innerHTML);
+            }
+
+            function addMessage(sender, htmlContent, isVocabCard = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('chatbot-message', `${sender}-message`);
+                messageDiv.innerHTML = htmlContent;
+                chatbotMessages.appendChild(messageDiv);
+                chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+                saveChatHistory();
+                if (isVocabCard) {
+                    bindFamiliarButtonEvents();
+                }
+            }
+
+            chatbotToggleBtn.addEventListener('click', () => {
+                chatbotContainer.style.display = 'flex';
+                chatbotToggleBtn.style.display = 'none';
+                chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+            });
+
+            chatbotCloseBtn.addEventListener('click', () => {
+                chatbotContainer.style.display = 'none';
+                chatbotToggleBtn.style.display = 'block';
+            });
+
+            if (logoutForm) {
+                logoutForm.addEventListener('submit', function() {
+                    // 保留聊天紀錄，不執行任何操作
+                });
+            }
+
+            function sendMessage() {
+                const message = userInput.value.trim();
+                if (message === '') return;
+
+                addMessage('user', message);
+                userInput.value = '';
+
+                if (message.toLowerCase() === '開始') {
+                    fetchDailyVocabulary();
+                } else {
+                    addMessage('robot', '抱歉，我目前只能識別「開始」指令來提供單字喔！');
+                }
+            }
+
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            function fetchDailyVocabulary() {
+                fetch('/api/chatbot/vocabulary/', {
+                    method: 'GET',
+                    headers: { 'X-CSRFToken': csrfToken }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.words && data.words.length > 0) {
+                        addMessage('robot', data.message);
+                        data.words.forEach(word => {
+                            const card = `
+                                <div class="vocab-card">
+                                    <h4>
+                                        <span class="word-text">${word.word}</span>
+                                        <span class="word-translation">${word.translation}</span>
+                                        <span class="pronunciation-text">${word.pronunciation}</span>
+                                        <span class="part-of-speech">${word.part_of_speech}</span>
+                                    </h4>
+                                    <p class="example-sentence">例句：${word.example_sentence}</p>
+                                    <p class="example-translation">翻譯：${word.example_translation}</p>
+                                    <button class="mark-familiar-btn" data-word-id="${word.word_id}">我已熟悉這個單字</button>
+                                </div>
+                            `;
+                            addMessage('robot', card, true);
+                        });
+                    } else {
+                        addMessage('robot', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching vocabulary:', error);
+                    addMessage('robot', '糟糕！無法取得單字，請稍後再試。');
+                });
+            }
+
+            function markWordAsFamiliar(wordId) {
+                const button = chatbotMessages.querySelector(`button[data-word-id="${wordId}"]`);
+                if (!button) {
+                    return;
+                }
+
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = '處理中...';
+                button.classList.add('loading'); 
+
+                fetch('/api/chatbot/mark-familiar/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ word_id: wordId })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Server responded with an error!');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    button.textContent = '已標記';
+                    button.classList.add('marked'); 
+                    button.classList.remove('loading');
+                    addMessage('robot', data.message);
+                })
+                .catch(error => {
+                    console.error('Error marking word as familiar:', error);
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    button.classList.remove('loading');
+                    addMessage('robot', '標記單字時發生錯誤，請稍後再試。');
+                });
+            }
+
+            loadChatHistory();
+        });
+    </script>
 </body>
 </html>
